@@ -31,8 +31,9 @@ end
 
 if true
   @a = Article.open(21)
-  puts @a.cache_get("name")
-  @a.cache_set("name", "Anni Fyo")
+  puts @a.cache_get(:name)
+  @a.cache_set(:name, "Anni Fyo")
+  @a.cache_call("%Save")
   @a = Article.open(21)
   puts @a.cache_get("name")
 end

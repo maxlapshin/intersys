@@ -10,6 +10,48 @@ module Cache
   
   class ObjectNotFound < CacheException
   end
+  
+  class Definition
+    def initialize(database, class_name, name)
+      @database = database
+      @class_name = class_name
+      @name = name
+      intern_initialize(database, class_name, name)
+    end
+  end
+  
+  class Property < Definition
+  end
+  
+  class Method < Definition
+    attr_accessor :args
+  protected
+    def arg!
+      Argument.new(@database, @class_name, @name, self)
+    end
+  public
+    
+    def initialize(database, class_name, name)
+      super(database, class_name, name)
+      method_initialize
+      @args = []
+      num_args.times do
+        @args << arg!
+      end
+    end
+    
+    def call(object, *method_args)
+      prepare_call!
+      raise ArgumentError, "wrong number of arguments (#{method_args.size} for #{args.size})" if args.size < method_args.size
+      args.each do |arg|
+        object.intern_param(method_args.shift, arg)
+      end
+      intern_call!(object)
+    end
+  end
+  
+  class Argument < Definition
+  end
 
   require 'cache'
   
@@ -38,6 +80,10 @@ module Cache
       Property.new(@@database, @@class_name, name.to_s.to_wchar)
     end
     
+    def self.method(name)
+      Method.new(@@database, @@class_name, name.to_s.to_wchar)
+    end
+    
     
     def cache_methods
       @@methods ||= intern_methods.map{|method| method.from_wchar.downcase.to_sym}
@@ -57,6 +103,10 @@ module Cache
     
     def cache_set(property, value)
       intern_set(self.class.property(property), value)
+    end
+    
+    def cache_call(method, *args)
+      self.class.method(method).call(self, *args)
     end
     
     alias :native_methods :methods

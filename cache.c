@@ -5,9 +5,12 @@ const char DB_NAME[] = "Database";
 const char QUERY_NAME[] = "Query";
 const char OBJECT_NAME[] = "Object";
 const char OBJECTNOTFOUND_NAME[] = "ObjectNotFound";
+const char DEFINITION_NAME[] = "Definition";
 const char PROPERTY_NAME[] = "Property";
+const char METHOD_NAME[] = "Method";
+const char ARGUMENT_NAME[] = "Argument";
 
-VALUE mCache, cDatabase, cQuery, cObject, cProperty, cObjectNotFound;
+VALUE mCache, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound;
 
 
 static VALUE string_to_wchar(VALUE self) {
@@ -21,6 +24,9 @@ static VALUE string_to_wchar(VALUE self) {
 static VALUE string_from_wchar(VALUE self) {
 	char chars[RSTRING(self)->len + 1];
 	int size;
+	if(LEN(self) == 0 || !STR(self)) {
+		return rb_str_new2("");
+	}
     RUN(cbind_uni_to_utf8(WCHARSTR(self), wcslen(WCHARSTR(self)), chars, sizeof(chars), &size));
 	chars[size] = 0;
 	return rb_str_new(chars, size + 1);
@@ -35,6 +41,9 @@ int run(int err, char *file, int line) {
 }
 
 static VALUE wcstr_new(const wchar_t *w_str) {
+	if(!w_str) {
+		return rb_funcall(rb_str_new2(""), rb_intern("to_wchar"), 0);
+	}
 	return rb_str_new((char *)w_str, wcslen(w_str));
 }
 
@@ -296,10 +305,10 @@ static VALUE cache_object_properties(VALUE self) {
 
 static VALUE cache_object_get(VALUE self, VALUE r_property) {
 	struct rbObject* object;
-	struct rbProperty* property;
+	struct rbDefinition* property;
 
 	Data_Get_Struct(self, struct rbObject, object);
-	Data_Get_Struct(r_property, struct rbProperty, property);
+	Data_Get_Struct(r_property, struct rbDefinition, property);
 
 	rb_funcall(r_property, rb_intern("set_as_result!"), 0);
     RUN(cbind_get_prop(object->database, object->oref, property->in_name));
@@ -308,10 +317,10 @@ static VALUE cache_object_get(VALUE self, VALUE r_property) {
 
 static VALUE cache_object_set(VALUE self, VALUE r_property, VALUE value) {
 	struct rbObject* object;
-	struct rbProperty* property;
+	struct rbDefinition* property;
 
 	Data_Get_Struct(self, struct rbObject, object);
-	Data_Get_Struct(r_property, struct rbProperty, property);
+	Data_Get_Struct(r_property, struct rbDefinition, property);
 
     RUN(cbind_reset_args(object->database));
 	rb_funcall(self, rb_intern("intern_param"), 2, value, r_property);
@@ -319,22 +328,17 @@ static VALUE cache_object_set(VALUE self, VALUE r_property, VALUE value) {
 	return self;
 }
 
-static VALUE cache_object_method_call(VALUE self, VALUE method, VALUE args) {
-	struct rbObject* object;
-	Data_Get_Struct(self, struct rbObject, object);
-	return self;
-}
 
 
 static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 	struct rbObject* object;
-	struct rbProperty* property;
+	struct rbDefinition* property;
     bool_t is_null;
 	int argnum = FIX2INT(index);
 
 
 	Data_Get_Struct(self, struct rbObject, object);
-	Data_Get_Struct(r_property, struct rbProperty, property);
+	Data_Get_Struct(r_property, struct rbDefinition, property);
 
     
     RUN(cbind_get_is_null(object->database, argnum, &is_null));
@@ -414,12 +418,12 @@ static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 static VALUE cache_object_param(VALUE self, VALUE obj, VALUE r_property) {
 	struct rbObject* object;
 	struct rbObject* param;
-	struct rbProperty* property;
+	struct rbDefinition* property;
 	int by_ref = 0;
 
 
 	Data_Get_Struct(self, struct rbObject, object);
-	Data_Get_Struct(r_property, struct rbProperty, property);
+	Data_Get_Struct(r_property, struct rbDefinition, property);
 	
 	if(obj == Qnil) {
         RUN(cbind_set_next_arg_as_null(object->database, property->cpp_type, by_ref));
@@ -490,69 +494,176 @@ static VALUE cache_object_param(VALUE self, VALUE obj, VALUE r_property) {
  * Property
  */
 
-static void cache_property_free(struct rbProperty* property) {
-	RUN(cbind_free_prop_def(property->prop_def));
-	RUN(cbind_free_class_def(property->database, property->cl_def));
-	free(property);
+static void cache_definition_free(struct rbDefinition* definition) {
+	switch(definition->type) {
+		case D_PROPERTY:
+			RUN(cbind_free_prop_def(definition->def));
+	}
+	RUN(cbind_free_class_def(definition->database, definition->cl_def));
+	free(definition);
 }
 
-static VALUE cache_property_s_allocate(VALUE klass) {
-	struct rbProperty* property = ALLOC(struct rbProperty);
-	bzero(property, sizeof(struct rbProperty));
-	return Data_Wrap_Struct(klass, 0, cache_property_free, property);
+static VALUE cache_definition_s_allocate(VALUE klass) {
+	struct rbDefinition* definition = ALLOC(struct rbDefinition);
+	bzero(definition, sizeof(struct rbDefinition));
+	return Data_Wrap_Struct(klass, 0, cache_definition_free, definition);
 }
 
-static VALUE cache_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
+static VALUE cache_definition_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
 	struct rbDatabase* database;
-	struct rbProperty* property;
+	struct rbDefinition* definition;
 	
 	Data_Get_Struct(r_database, struct rbDatabase, database);
-	Data_Get_Struct(self, struct rbProperty, property);
+	Data_Get_Struct(self, struct rbDefinition, definition);
 	
-	property->database = database->database;
-	rb_iv_set(self, "@name", name);
-	property->in_name = WCHARSTR(name);
+	definition->database = database->database;
+	definition->in_name = WCHARSTR(name);
 	
-	RUN(cbind_alloc_class_def(database->database, WCHARSTR(class_name), &property->cl_def));
-    RUN(cbind_alloc_prop_def(&property->prop_def));
-    RUN(cbind_get_prop_def(property->cl_def, property->in_name, property->prop_def));
-    RUN(cbind_get_prop_cpp_type(property->prop_def, &property->cpp_type));
-    RUN(cbind_get_prop_cache_type(property->prop_def, &property->cache_type));
-    RUN(cbind_get_prop_name(property->prop_def, &property->name));
+	RUN(cbind_alloc_class_def(database->database, WCHARSTR(class_name), &definition->cl_def));
+	return self;
+}
+
+static VALUE cache_definition_cpp_type(VALUE self) {
+	struct rbDefinition* definition;
+	Data_Get_Struct(self, struct rbDefinition, definition);
+	return INT2FIX(definition->cpp_type);
+}
+
+
+static VALUE cache_definition_cache_type(VALUE self) {
+	struct rbDefinition* definition;
+	Data_Get_Struct(self, struct rbDefinition, definition);
+	return FROMWCSTR(definition->cache_type);
+}
+
+static VALUE cache_definition_name(VALUE self) {
+	struct rbDefinition* definition;
+	Data_Get_Struct(self, struct rbDefinition, definition);
+	return FROMWCSTR(definition->name);
+}
+
+static VALUE cache_definition_in_name(VALUE self) {
+	struct rbDefinition* definition;
+	Data_Get_Struct(self, struct rbDefinition, definition);
+	return FROMWCSTR(definition->in_name);
+}
+
+
+static VALUE cache_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
+	struct rbDefinition* property;
+	VALUE args[] = {r_database, class_name, name};
+	rb_call_super(3, args);
+	
+	Data_Get_Struct(self, struct rbDefinition, property);
+
+	property->type = D_PROPERTY;
+    RUN(cbind_alloc_prop_def(&property->def));
+    RUN(cbind_get_prop_def(property->cl_def, property->in_name, property->def));
+    RUN(cbind_get_prop_cpp_type(property->def, &property->cpp_type));
+    RUN(cbind_get_prop_cache_type(property->def, &property->cache_type));
+    RUN(cbind_get_prop_name(property->def, &property->name));
 	return self;
 }
 
 static VALUE cache_property_set_result(VALUE self) {
-	struct rbProperty* property;
-	Data_Get_Struct(self, struct rbProperty, property);
+	struct rbDefinition* property;
+	Data_Get_Struct(self, struct rbDefinition, property);
     RUN(cbind_set_next_arg_as_res(property->database, property->cpp_type));    
 	return self;
 }
 
-static VALUE cache_property_cpp_type(VALUE self) {
-	struct rbProperty* property;
-	Data_Get_Struct(self, struct rbProperty, property);
-	return INT2FIX(property->cpp_type);
+static VALUE cache_method_initialize(VALUE self) {
+	struct rbDefinition* method;
+	Data_Get_Struct(self, struct rbDefinition, method);
+
+	method->type = D_METHOD;
+    RUN(cbind_alloc_mtd_def(&method->def));
+    RUN(cbind_get_mtd_def(method->cl_def, method->in_name, method->def));
+    RUN(cbind_get_mtd_is_func(method->def, &method->is_func));
+    RUN(cbind_get_mtd_cpp_type(method->def, &method->cpp_type));
+    RUN(cbind_get_mtd_cache_type(method->def, &method->cache_type));
+    RUN(cbind_get_mtd_is_cls_mtd(method->def, &method->is_class_method));
+    RUN(cbind_get_mtd_num_args(method->def, &method->num_args));
+	method->num_args = 0;
+    RUN(cbind_get_mtd_args_info(method->def, &method->args_info));
+    RUN(cbind_get_mtd_name(method->def, &method->name));
+	return self;
+}
+
+static VALUE cache_method_is_func(VALUE self) {
+	struct rbDefinition* method;
+	Data_Get_Struct(self, struct rbDefinition, method);
+	return method->is_func ? Qtrue : Qfalse;
 }
 
 
-static VALUE cache_property_cache_type(VALUE self) {
-	struct rbProperty* property;
-	Data_Get_Struct(self, struct rbProperty, property);
-	return FROMWCSTR(property->cache_type);
+static VALUE cache_method_is_class_method(VALUE self) {
+	struct rbDefinition* method;
+	Data_Get_Struct(self, struct rbDefinition, method);
+	return method->is_class_method ? Qtrue : Qfalse;
 }
 
-static VALUE cache_property_name(VALUE self) {
-	struct rbProperty* property;
-	Data_Get_Struct(self, struct rbProperty, property);
-	return FROMWCSTR(property->name);
+static VALUE cache_method_num_args(VALUE self) {
+	struct rbDefinition* method;
+	Data_Get_Struct(self, struct rbDefinition, method);
+	return INT2FIX(method->num_args);
 }
 
-static VALUE cache_property_in_name(VALUE self) {
-	struct rbProperty* property;
-	Data_Get_Struct(self, struct rbProperty, property);
-	return FROMWCSTR(property->in_name);
+static VALUE cache_method_prepare_call(VALUE self) {
+	struct rbDefinition* method;
+	
+	Data_Get_Struct(self, struct rbDefinition, method);
+	
+	RUN(cbind_reset_args(method->database));
+	RUN(cbind_mtd_rewind_args(method->def));
+	return self;
 }
+
+static VALUE cache_method_call(VALUE self, VALUE r_object) {
+	struct rbDefinition* method;
+	struct rbObject* object;
+	
+	Data_Get_Struct(self, struct rbDefinition, method);
+	Data_Get_Struct(r_object, struct rbObject, object);
+
+    RUN(cbind_run_method(method->database, object->oref, CLASS_NAME(object), method->in_name));
+	return self;
+}
+
+static VALUE cache_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method) {
+	struct rbDefinition* argument;
+	struct rbDefinition* method;
+	VALUE args[] = {r_database, class_name, name};
+	rb_call_super(3, args);
+	
+	Data_Get_Struct(self, struct rbDefinition, argument);
+	Data_Get_Struct(r_method, struct rbDefinition, method);
+
+
+	argument->type = D_ARGUMENT;
+    RUN(cbind_mtd_arg_get(method->def, argument->def));
+    RUN(cbind_get_arg_cpp_type(argument->def, &argument->cpp_type));
+    RUN(cbind_get_arg_cache_type(argument->def, &argument->cache_type));
+    RUN(cbind_get_arg_name(argument->def, &argument->name));
+    RUN(cbind_get_arg_is_by_ref(argument->def, &argument->is_by_ref));
+    RUN(cbind_get_arg_is_default(argument->def, &argument->is_default));    
+    RUN(cbind_get_arg_def_val(argument->def, &argument->default_value));
+    RUN(cbind_get_arg_def_val_size(argument->def, &argument->default_value_size));
+    RUN(cbind_mtd_arg_next(method->def));
+	argument->arg_number = method->arg_counter;
+	method->arg_counter++;
+	return self;
+}
+
+static VALUE cache_argument_default_value(VALUE self) {
+	struct rbDefinition* argument;
+	Data_Get_Struct(self, struct rbDefinition, argument);
+	if(!argument->is_default) {
+		return Qnil;
+	}
+	return rb_str_new(argument->default_value, argument->default_value_size);
+}
+
 
 void Init_cache() {
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
@@ -561,6 +672,7 @@ void Init_cache() {
 
 	mCache = rb_define_module(MODULE_NAME);
 	cObjectNotFound = rb_const_get(mCache, rb_intern(OBJECTNOTFOUND_NAME));
+
 
 	cDatabase = rb_define_class_under(mCache, DB_NAME, rb_cObject);
 	rb_define_alloc_func(cDatabase, cache_base_s_allocate);
@@ -588,19 +700,35 @@ void Init_cache() {
 	rb_define_singleton_method(cObject, "open_intern", cache_object_open_by_id, 3);
 	rb_define_method(cObject, "intern_methods", cache_object_methods, 0);
 	rb_define_method(cObject, "intern_properties", cache_object_properties, 0);
-	rb_define_method(cObject, "cache_call", cache_object_method_call, 2);
 	rb_define_method(cObject, "intern_get", cache_object_get, 1);
 	rb_define_method(cObject, "intern_set", cache_object_set, 2);
 	rb_define_method(cObject, "intern_result", cache_object_result, 2);
 	rb_define_method(cObject, "intern_param", cache_object_param, 2);
 
-	cProperty = rb_define_class_under(mCache, PROPERTY_NAME, rb_cObject);
-	rb_define_alloc_func(cProperty, cache_property_s_allocate);
+	cDefinition = rb_const_get(mCache, rb_intern(DEFINITION_NAME));
+
+	rb_define_alloc_func(cDefinition, cache_definition_s_allocate);
+	rb_define_method(cDefinition, "intern_initialize", cache_definition_initialize, 3);
+	rb_define_method(cDefinition, "cpp_type", cache_definition_cpp_type, 0);
+	rb_define_method(cDefinition, "cache_type", cache_definition_cache_type, 0);
+	rb_define_method(cDefinition, "name", cache_definition_name, 0);
+	rb_define_method(cDefinition, "in_name", cache_definition_in_name, 0);
+
+	cProperty = rb_const_get(mCache, rb_intern(PROPERTY_NAME));
 	rb_define_method(cProperty, "initialize", cache_property_initialize, 3);
 	rb_define_method(cProperty, "set_as_result!", cache_property_set_result, 0);
-	rb_define_method(cProperty, "cpp_type", cache_property_cpp_type, 0);
-	rb_define_method(cProperty, "cache_type", cache_property_cache_type, 0);
-	rb_define_method(cProperty, "name", cache_property_name, 0);
-	rb_define_method(cProperty, "in_name", cache_property_in_name, 0);
+
+	cMethod = rb_const_get(mCache, rb_intern(METHOD_NAME));
+	rb_define_method(cMethod, "method_initialize", cache_method_initialize, 0);
+	rb_define_method(cMethod, "is_func?", cache_method_is_func, 0);
+	rb_define_method(cMethod, "is_class_method?", cache_method_is_class_method, 0);
+	rb_define_method(cMethod, "num_args", cache_method_num_args, 0);
+	rb_define_method(cMethod, "prepare_call!", cache_method_prepare_call, 0);
+	rb_define_method(cMethod, "intern_call!", cache_method_call, 1);
+	
+	cArgument = rb_const_get(mCache, rb_intern(ARGUMENT_NAME));
+	rb_define_method(cArgument, "initialize", cache_argument_initialize, 4);
+	rb_define_method(cArgument, "default", cache_argument_default_value, 0);
+
 }
 

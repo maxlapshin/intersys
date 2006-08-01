@@ -21,16 +21,30 @@ struct rbObject {
 	VALUE class_name;
 };
 
-struct rbProperty {
+struct rbDefinition {
+	int type;
 	h_database database;
-    h_prop_def prop_def;
+    void *def;
     short cpp_type;
 	h_class_def cl_def;
     const wchar_t* cache_type;
     const wchar_t* name;
-	const wchar_t* in_name;
+	wchar_t* in_name;
+	// Method definitions
+	bool_t is_func;
+	bool_t is_class_method;
+	int num_args;
+	void *args_info;
+	int arg_counter;
+	//Argument definitions
+	bool_t is_by_ref;
+	bool_t is_default;
+	const char* default_value;
+	long default_value_size;
+	int arg_number;
 };
 
+enum { D_PROPERTY, D_METHOD, D_ARGUMENT};
 
 
 int run(int error, char* file, int line);
