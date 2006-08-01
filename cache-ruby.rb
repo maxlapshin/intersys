@@ -109,16 +109,27 @@ module Cache
       self.class.method(method).call(self, *args)
     end
     
-    alias :native_methods :methods
-    def methods
-      native_methods + cache_methods + cache_properties + cache_setters
+    def method_missing(method, *args)
+      if match_data = method.to_s.match(/(\w+)=/)
+        return cache_set(match_data.captures.first, args.first)
+      end
+      begin
+        return cache_get(method)
+      rescue
+        begin
+          return cache_call(method, args)
+        rescue
+        end
+      end
+      super(method, *args)
     end
     
-    def method_missing(method, *args)
-      return cache_call(method.to_s.to_wchar, args) if cache_methods.include?(method)
-      return cache_get(method.to_s.to_wchar) if cache_properties.include?(method)
-      return cache_set(method.to_s.to_wchar, *args) if cache_setters.include?("#{method}=")
-      super(method, *args)
+    def save
+      cache_call("%Save")
+    end
+    
+    def id
+      cache_get("%Id")
     end
   end
   
