@@ -36,4 +36,5 @@ if true
   @a.save
   @a = Article.open(21)
   puts @a.name
+  puts @a.id
 end

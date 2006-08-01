@@ -47,6 +47,7 @@ module Cache
         object.intern_param(method_args.shift, arg)
       end
       intern_call!(object)
+      extract_retval!(object)
     end
   end
   
@@ -129,7 +130,7 @@ module Cache
     end
     
     def id
-      cache_get("%Id")
+      cache_call("%Id").to_i
     end
   end
   

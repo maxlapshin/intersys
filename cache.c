@@ -349,7 +349,6 @@ static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 	switch(property->cpp_type) {
 		case CBIND_VOID: return Qnil;
 		
-		case CBIND_STATUS_ID:
 		case CBIND_OBJ_ID: 
         case CBIND_TIME_ID:
         case CBIND_DATE_ID:
@@ -385,6 +384,22 @@ static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 		    RSTRING(result)->aux.capa = size;
 			return result;
 		}
+		case CBIND_STATUS_ID:{
+            byte_size_t size;
+            char *buf;
+			int code;
+			VALUE result = rb_str_new(0, 0);
+
+            RUN(cbind_get_arg_as_status(object->database, argnum, &code, NULL, 0, MULTIBYTE, &size, &is_null));
+			buf = ALLOC_N(char, size + 1);
+            RUN(cbind_get_arg_as_status(object->database, argnum, &code, buf, size, MULTIBYTE, &size, &is_null));
+			
+			RSTRING(result)->ptr = buf;
+			RSTRING(result)->len = size;
+		    RSTRING(result)->aux.capa = size;
+			return rb_funcall(result, rb_intern("from_wchar"), 0);
+		}
+
 		
 		case CBIND_STRING_ID: {
             byte_size_t size;
@@ -626,8 +641,23 @@ static VALUE cache_method_call(VALUE self, VALUE r_object) {
 	Data_Get_Struct(self, struct rbDefinition, method);
 	Data_Get_Struct(r_object, struct rbObject, object);
 
+    if (method->cpp_type != CBIND_VOID) {    
+        RUN(cbind_set_next_arg_as_res(method->database, method->cpp_type));
+    }
     RUN(cbind_run_method(method->database, object->oref, CLASS_NAME(object), method->in_name));
 	return self;
+}
+
+static VALUE cache_method_extract_retval(VALUE self, VALUE r_object) {
+	struct rbDefinition* method;
+	struct rbObject* object;
+	
+	Data_Get_Struct(self, struct rbDefinition, method);
+	Data_Get_Struct(r_object, struct rbObject, object);
+	if(method->cpp_type == CBIND_VOID) {
+		return Qnil;
+	}
+	return rb_funcall(r_object, rb_intern("intern_result"), 2, method->num_args, self);
 }
 
 static VALUE cache_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method) {
@@ -725,6 +755,7 @@ void Init_cache() {
 	rb_define_method(cMethod, "num_args", cache_method_num_args, 0);
 	rb_define_method(cMethod, "prepare_call!", cache_method_prepare_call, 0);
 	rb_define_method(cMethod, "intern_call!", cache_method_call, 1);
+	rb_define_method(cMethod, "extract_retval!", cache_method_extract_retval, 1);
 	
 	cArgument = rb_const_get(mCache, rb_intern(ARGUMENT_NAME));
 	rb_define_method(cArgument, "initialize", cache_argument_initialize, 4);
