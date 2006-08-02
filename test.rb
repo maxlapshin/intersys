@@ -9,14 +9,14 @@ class Article < Cache::Object
 end
 
 if nil
-  @db = Cache::Database.new(:user => "Admin", :password => "123", :namespace => "User")
+  @db = Cache::Database.new(:user => "_SYSTEM", :password => "SYS", :namespace => "User")
   
 
 @data = @db.query("insert into articles (name) values ('test name')")
 puts "Result: #{@data.inspect}"
 
 
-@data = @db.query("select * from articles")
+@data = @db.query("select name from articles where id = 23")
 puts "Result: #{@data.inspect}"
 end
 

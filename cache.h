@@ -4,6 +4,7 @@
 #include "ruby.h"
 #include "rubyio.h"
 #include "intern.h"
+#include <time.h>
 #include <c_api.h>
 
 struct rbDatabase {
@@ -13,6 +14,7 @@ struct rbDatabase {
 
 struct rbQuery {
 	h_query query;
+	bool_t empty;
 };
 
 struct rbObject {
@@ -42,6 +44,9 @@ struct rbDefinition {
 	const char* default_value;
 	long default_value_size;
 	int arg_number;
+	
+	char* current_dlist;
+	int current_dlist_size;
 };
 
 enum { D_PROPERTY, D_METHOD, D_ARGUMENT};
@@ -52,14 +57,18 @@ int run(int error, char* file, int line);
 #define QUERY_RUN(x) {int sql_code = 0; (x); run(sql_code, __FILE__, __LINE__);}
 #define STR(x) (RSTRING(x)->ptr)
 #define LEN(x) (RSTRING(x)->len)
+#define CALL(x, method) (rb_funcall((x), rb_intern(method), 0))
 
 #define WCHARSTR(x) ((wchar_t *)STR(x))
 
-#define FROMWCHAR(x) (rb_funcall(x, rb_intern("from_wchar"), 0))
-#define TOWCHAR(x) (rb_funcall(x, rb_intern("to_wchar"), 0))
+#define FROMWCHAR(x) (rb_funcall((x), rb_intern("from_wchar"), 0))
+#define TOWCHAR(x) (rb_funcall((x), rb_intern("to_wchar"), 0))
 
 #define FROMWCSTR(x) (FROMWCHAR(wcstr_new(x))) // From wchar_t* -> VALUE with utf8
 #define PRINTABLE(x) STR(FROMWCHAR(x))         // from VALUE with ucs -> char * with utf8
-#define CLASS_NAME(x) WCHARSTR(x->class_name)  // from object description -> wchar_t*
+#define CLASS_NAME(x) WCHARSTR((x)->class_name)  // from object description -> wchar_t*
+
+#define DLISTSIZE (argument->current_dlist_amount - argument->current_dlist_size)
+#define PUT_DLIST(func, value) RUN(func(argument->current_dlist, DLISTSIZE, value, &elem_size))
 
 #endif /* __cache_ruby */

@@ -1,16 +1,7 @@
 #include "cache.h"
 
-const char MODULE_NAME[] = "Cache";
-const char DB_NAME[] = "Database";
-const char QUERY_NAME[] = "Query";
-const char OBJECT_NAME[] = "Object";
-const char OBJECTNOTFOUND_NAME[] = "ObjectNotFound";
-const char DEFINITION_NAME[] = "Definition";
-const char PROPERTY_NAME[] = "Property";
-const char METHOD_NAME[] = "Method";
-const char ARGUMENT_NAME[] = "Argument";
-
-VALUE mCache, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound;
+VALUE mCache, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound, cStatus;
+VALUE cTime, cMarshallError, cUnMarshallError;
 
 
 static VALUE string_to_wchar(VALUE self) {
@@ -156,17 +147,22 @@ static VALUE cache_query_s_allocate(VALUE klass) {
 static VALUE cache_query_initialize(VALUE self, VALUE database, VALUE sql_query) {
 	struct rbQuery* query;
 	struct rbDatabase* base;
+	int sql_code;
 	Data_Get_Struct(self, struct rbQuery, query);
 	Data_Get_Struct(database, struct rbDatabase, base);
 	RUN(cbind_alloc_query(base->database, &query->query));
-	QUERY_RUN(cbind_prepare_gen_query(query->query, WCHARSTR(sql_query), &sql_code));
+	RUN(cbind_prepare_gen_query(query->query, WCHARSTR(sql_query), &sql_code));
 	return self;
 }
 
 static VALUE cache_query_execute(VALUE self) {
 	struct rbQuery* query;
+	int sql_code;
+	int res;
 	Data_Get_Struct(self, struct rbQuery, query);
-	QUERY_RUN(cbind_query_execute(query->query, &sql_code));
+	RUN(cbind_query_execute(query->query, &sql_code));
+    RUN(cbind_query_get_num_pars(query->query, &res));
+	printf("Hi: %d\n", res);
 	return self;
 }
 
@@ -178,6 +174,19 @@ static VALUE cache_query_column_name(h_query query, int i) {
 	return rb_funcall(rb_str_new((char *)res, len),rb_intern("from_wchar"), 0);
 }
 
+static VALUE cache_query_get_data(VALUE self, VALUE index) {
+	struct rbQuery* query;
+	int type = 0;
+	VALUE ret = Qnil;
+	Data_Get_Struct(self, struct rbQuery, query);
+
+    RUN(cbind_query_get_col_sql_type(query->query, FIX2INT(index), &type));
+	switch(type) {
+		
+	}
+	return ret;
+}
+
 static VALUE cache_query_fetch(VALUE self) {
 	struct rbQuery* query;
 	VALUE columns, data;
@@ -187,13 +196,14 @@ static VALUE cache_query_fetch(VALUE self) {
 	int sql_code;
 
 	RUN(cbind_query_fetch(query->query, &sql_code));
-
+	
 	data = rb_ary_new();
 	rb_iv_set(self, "@data", data);
 	columns = rb_ary_new2(num_cols);
 	rb_iv_set(self, "@columns", columns);
 
 	if(sql_code == 100) {
+		query->query = 1;
 		rb_funcall(self, rb_intern("close"), 0);
 		return data;
 	}
@@ -202,10 +212,13 @@ static VALUE cache_query_fetch(VALUE self) {
 	}
 	
 	RUN(cbind_query_get_num_cols(query->query, &num_cols));
-	for(i = 0; i < num_cols ; i++) {
+	for(i = 0; i < num_cols; i++) {
 		rb_ary_push(columns, cache_query_column_name(query->query, i));
 	}
 	
+	for(i = 0; i < num_cols; i++) {
+		rb_ary_push(data, rb_funcall(self, rb_intern("get_data"), 1, INT2FIX(i+1)));
+	}
 	rb_funcall(self, rb_intern("close"), 0);
 	return data;
 }
@@ -329,6 +342,44 @@ static VALUE cache_object_set(VALUE self, VALUE r_property, VALUE value) {
 }
 
 
+static VALUE extract_next_dlist_elem(char *dlist, int* elem_size) {
+	bool_t flag;
+	
+    RUN(cbind_dlist_is_elem_null(dlist,&flag));
+    if (flag) { 
+        RUN(cbind_dlist_get_elem_size(dlist, elem_size));
+		return Qnil;
+    }
+
+    RUN(cbind_dlist_is_elem_int(dlist,&flag));
+    if (flag) { // process integer
+        int val;
+        RUN(cbind_dlist_get_elem_as_int(dlist, &val, elem_size));
+		return NUM2INT(val);
+    }
+    RUN(cbind_dlist_is_elem_double(dlist,&flag));
+    if (flag) { // process double
+        double val;
+        RUN(cbind_dlist_get_elem_as_double(dlist, &val, elem_size));
+		return rb_float_new(val);
+    }
+    RUN(cbind_dlist_is_elem_str(dlist,&flag));
+    if (flag) { // process string
+        const char *str;
+        int size;
+        bool_t is_uni;
+		VALUE val;
+
+        RUN(cbind_dlist_get_str_elem(dlist, &is_uni, &str, &size, elem_size));
+		val = rb_str_new(str, size);
+        if (is_uni) {
+			val = FROMWCHAR(val);
+        }
+		return val;
+    }
+	rb_raise(cUnMarshallError, "Couldn't unmarshall dlist element");
+}
+
 
 static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 	struct rbObject* object;
@@ -347,16 +398,37 @@ static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 	}
 	
 	switch(property->cpp_type) {
-		case CBIND_VOID: return Qnil;
+		case CBIND_VOID: {
+			return Qnil;
+		}
 		
-		case CBIND_OBJ_ID: 
-        case CBIND_TIME_ID:
-        case CBIND_DATE_ID:
-        case CBIND_TIMESTAMP_ID:
-        case CBIND_CURRENCY_ID:
-        case CBIND_DLIST_ID:
+		case CBIND_OBJ_ID: {
 			rb_raise(rb_eStandardError, "Cannot unmarshall type %d now", property->cpp_type);
 			return Qnil;
+		}
+		
+        case CBIND_TIME_ID:
+        {
+			int hour, minute, second;
+			RUN(cbind_get_arg_as_time(object->database, argnum, &hour, &minute, &second, &is_null));
+			return Qnil;
+            break;
+        }
+        case CBIND_DATE_ID:
+        {
+			int year, month,day;
+			RUN(cbind_get_arg_as_date(object->database, argnum, &year, &month, &day, &is_null));
+			return Qnil;
+            break;
+        }
+        case CBIND_TIMESTAMP_ID:
+        {
+			int year, month, day, hour, minute, second, fraction;
+		  	RUN(cbind_get_arg_as_timestamp(object->database, argnum, 
+					&year, &month, &day, &hour, &minute, &second, &fraction, &is_null));
+			return Qnil;
+            break;
+        }
 		
 		case CBIND_INT_ID: {
 			int val;
@@ -369,6 +441,12 @@ static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
             RUN(cbind_get_arg_as_double(object->database, argnum, &val, &is_null));
 			return rb_float_new(val);
 		}
+        case CBIND_CURRENCY_ID:
+        {
+            double val;
+            RUN(cbind_get_arg_as_cy(object->database, argnum, &val, &is_null));
+			return rb_float_new(val);
+        }
 		
 		case CBIND_BINARY_ID: {
             byte_size_t size;
@@ -388,19 +466,18 @@ static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
             byte_size_t size;
             char *buf;
 			int code;
-			VALUE result = rb_str_new(0, 0);
+			VALUE args[2];
 
             RUN(cbind_get_arg_as_status(object->database, argnum, &code, NULL, 0, MULTIBYTE, &size, &is_null));
 			buf = ALLOC_N(char, size + 1);
             RUN(cbind_get_arg_as_status(object->database, argnum, &code, buf, size, MULTIBYTE, &size, &is_null));
 			
-			RSTRING(result)->ptr = buf;
-			RSTRING(result)->len = size;
-		    RSTRING(result)->aux.capa = size;
-			return rb_funcall(result, rb_intern("from_wchar"), 0);
+			args[0] = INT2NUM(code);
+			args[1] = FROMWCHAR(rb_str_new(buf, size));
+			free(buf);
+			return rb_class_new_instance(2, args, cStatus);
 		}
 
-		
 		case CBIND_STRING_ID: {
             byte_size_t size;
             char *buf;
@@ -415,6 +492,7 @@ static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 		    RSTRING(result)->aux.capa = size;
 			return rb_funcall(result, rb_intern("from_wchar"), 0);
 		}
+
         case CBIND_BOOL_ID:
         {
             bool_t val;
@@ -425,10 +503,35 @@ static VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 			return Qfalse;
         }
 		
+        case CBIND_DLIST_ID:
+        {
+            char *buf;
+            char *p;
+            byte_size_t size;
+            int num_elems;
+            int i;
+			VALUE list;
+
+            RUN(cbind_get_arg_as_dlist(object->database, argnum, NULL, 0, &size, &is_null));
+            buf = ALLOC_N(char, size);
+            RUN(cbind_get_arg_as_dlist(object->database, argnum, buf, size, &size, &is_null));	    
+
+            RUN(cbind_dlist_calc_num_elems(buf, size, &num_elems));
+			list = rb_ary_new2(num_elems);
+            p = buf;
+			for (i=0; i < num_elems; i++) {
+	            int elem_size;
+				rb_ary_push(list, extract_next_dlist_elem(p, &elem_size));
+				p += elem_size;
+			}
+			free(buf);
+            return list;
+        }
 		
 	}
 	return Qnil;
 }
+
 
 static VALUE cache_object_param(VALUE self, VALUE obj, VALUE r_property) {
 	struct rbObject* object;
@@ -490,12 +593,55 @@ static VALUE cache_object_param(VALUE self, VALUE obj, VALUE r_property) {
             // TBD
             break;
         }
+        case CBIND_TIME_ID:
+        {
+			int hour = NUM2INT(CALL(obj, "hour"));
+			int minute = NUM2INT(CALL(obj, "min"));
+			int second = NUM2INT(CALL(obj, "sec"));
+			RUN(cbind_set_next_arg_as_time(object->database, hour, minute, second, by_ref));
+            break;
+        }
+        case CBIND_DATE_ID:
+        {
+			int year = NUM2INT(CALL(obj, "year"));
+			int month = NUM2INT(CALL(obj, "month"));
+			int day = NUM2INT(CALL(obj, "day"));
+			RUN(cbind_set_next_arg_as_date(object->database, year, month, day, by_ref));
+            break;
+        }
+        case CBIND_TIMESTAMP_ID:
+        {
+			int year = NUM2INT(CALL(obj, "year"));
+			int month = NUM2INT(CALL(obj, "month"));
+			int day = NUM2INT(CALL(obj, "day"));
+			int hour = NUM2INT(CALL(obj, "hour"));
+			int minute = NUM2INT(CALL(obj, "min"));
+			int second = NUM2INT(CALL(obj, "sec"));
+			int fraction = 0;
+		  	RUN(cbind_set_next_arg_as_timestamp(object->database, 
+					year, month, day, hour, minute, second, fraction, by_ref));
+            break;
+        }
         case CBIND_BOOL_ID:
         {
 			bool_t res = RTEST(obj);
             RUN(cbind_set_next_arg_as_bool(object->database, res, by_ref));
             break;
         }
+        case CBIND_DLIST_ID:
+        {
+            char buf[327];
+			
+			property->current_dlist_size = sizeof(buf);
+			property->current_dlist = buf;
+			rb_funcall(r_property, rb_intern("marshall_dlist"), 1, obj);
+            RUN(cbind_set_next_arg_as_dlist(object->database, buf, sizeof(buf) - property->current_dlist_size, by_ref));
+			property->current_dlist_size = 0;
+			property->current_dlist = 0;
+            break;
+
+        }
+
         default:
             rb_raise(rb_eStandardError,"unknown type for argument, type = %d", 
 				property->cpp_type, CLASS_NAME(object));
@@ -694,17 +840,55 @@ static VALUE cache_argument_default_value(VALUE self) {
 	return rb_str_new(argument->default_value, argument->default_value_size);
 }
 
+static VALUE cache_argument_marshall_dlist_elem(VALUE self, VALUE elem) {
+	struct rbDefinition* argument;
+	Data_Get_Struct(self, struct rbDefinition, argument);
+	int elem_size;
+	
+	switch(TYPE(elem)) {
+		case T_NIL: {
+			RUN(cbind_dlist_put_null_elem(argument->current_dlist, argument->current_dlist_size, &elem_size));
+			break;
+		}
+		case T_FIXNUM: {
+			RUN(cbind_dlist_put_int_elem(argument->current_dlist, argument->current_dlist_size, FIX2INT(elem), &elem_size));
+			break;
+	    }
+		case T_FLOAT: {
+			RUN(cbind_dlist_put_double_elem(argument->current_dlist, argument->current_dlist_size, RFLOAT(elem)->value, &elem_size));		
+			break;
+		}
+		case T_STRING: {
+			VALUE val = TOWCHAR(elem);
+	        RUN(cbind_dlist_put_str_elem(argument->current_dlist, argument->current_dlist_size, 1, STR(val), LEN(val), &elem_size));
+			break;
+		}
+		default: {
+			rb_raise(cMarshallError, "couldn't marshall to dlist element: %s", STR(CALL(elem, "inspect")));
+	        return Qnil;
+		}
+	}
+	argument->current_dlist_size -= elem_size;
+	argument->current_dlist += elem_size;
+	return elem;
+}
+
 
 void Init_cache() {
+
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
 	rb_define_method(rb_cString, "from_wchar", string_from_wchar, 0);
 
 
-	mCache = rb_define_module(MODULE_NAME);
-	cObjectNotFound = rb_const_get(mCache, rb_intern(OBJECTNOTFOUND_NAME));
+	mCache = rb_define_module("Cache");
+	cObjectNotFound = rb_const_get(mCache, rb_intern("ObjectNotFound"));
+	cMarshallError = rb_const_get(mCache, rb_intern("MarshallError"));
+	cUnMarshallError = rb_const_get(mCache, rb_intern("UnMarshallError"));
+	cStatus = rb_const_get(mCache, rb_intern("Status"));
+	cTime = rb_const_get(rb_cObject, rb_intern("Time"));
 
 
-	cDatabase = rb_define_class_under(mCache, DB_NAME, rb_cObject);
+	cDatabase = rb_define_class_under(mCache, "Database", rb_cObject);
 	rb_define_alloc_func(cDatabase, cache_base_s_allocate);
 	rb_define_method(cDatabase, "initialize", cache_base_initialize, 1);
 	rb_define_method(cDatabase, "connect", cache_base_connect, 1);
@@ -716,14 +900,15 @@ void Init_cache() {
 	rb_define_method(cDatabase, "rollback", cache_base_rollback, 0);
 	rb_define_method(cDatabase, "level", cache_base_level, 0);
 
-	cQuery = rb_define_class_under(mCache, QUERY_NAME, rb_cObject);
+	cQuery = rb_define_class_under(mCache, "Query", rb_cObject);
 	rb_define_alloc_func(cQuery, cache_query_s_allocate);
-	rb_define_method(cQuery, "initialize", cache_query_initialize, 1);
+	rb_define_method(cQuery, "native_initialize", cache_query_initialize, 2);
 	rb_define_method(cQuery, "execute", cache_query_execute, 0);
 	rb_define_method(cQuery, "fetch", cache_query_fetch, 0);
+	rb_define_method(cQuery, "get_data", cache_query_get_data, 1);
 	rb_define_method(cQuery, "close", cache_query_close, 0);
 
-	cObject = rb_define_class_under(mCache, OBJECT_NAME, rb_cObject);
+	cObject = rb_define_class_under(mCache, "Object", rb_cObject);
 	rb_define_alloc_func(cObject, cache_object_s_allocate);
 	rb_define_method(cObject, "initialize", cache_object_initialize, 0);
 	rb_define_singleton_method(cObject, "create_intern", cache_object_create, 2);
@@ -735,8 +920,7 @@ void Init_cache() {
 	rb_define_method(cObject, "intern_result", cache_object_result, 2);
 	rb_define_method(cObject, "intern_param", cache_object_param, 2);
 
-	cDefinition = rb_const_get(mCache, rb_intern(DEFINITION_NAME));
-
+	cDefinition = rb_const_get(mCache, rb_intern("Definition"));
 	rb_define_alloc_func(cDefinition, cache_definition_s_allocate);
 	rb_define_method(cDefinition, "intern_initialize", cache_definition_initialize, 3);
 	rb_define_method(cDefinition, "cpp_type", cache_definition_cpp_type, 0);
@@ -744,11 +928,11 @@ void Init_cache() {
 	rb_define_method(cDefinition, "name", cache_definition_name, 0);
 	rb_define_method(cDefinition, "in_name", cache_definition_in_name, 0);
 
-	cProperty = rb_const_get(mCache, rb_intern(PROPERTY_NAME));
+	cProperty = rb_const_get(mCache, rb_intern("Property"));
 	rb_define_method(cProperty, "initialize", cache_property_initialize, 3);
 	rb_define_method(cProperty, "set_as_result!", cache_property_set_result, 0);
 
-	cMethod = rb_const_get(mCache, rb_intern(METHOD_NAME));
+	cMethod = rb_const_get(mCache, rb_intern("Method"));
 	rb_define_method(cMethod, "method_initialize", cache_method_initialize, 0);
 	rb_define_method(cMethod, "is_func?", cache_method_is_func, 0);
 	rb_define_method(cMethod, "is_class_method?", cache_method_is_class_method, 0);
@@ -757,9 +941,10 @@ void Init_cache() {
 	rb_define_method(cMethod, "intern_call!", cache_method_call, 1);
 	rb_define_method(cMethod, "extract_retval!", cache_method_extract_retval, 1);
 	
-	cArgument = rb_const_get(mCache, rb_intern(ARGUMENT_NAME));
+	cArgument = rb_const_get(mCache, rb_intern("Argument"));
 	rb_define_method(cArgument, "initialize", cache_argument_initialize, 4);
 	rb_define_method(cArgument, "default", cache_argument_default_value, 0);
+	rb_define_method(cArgument, "marshall_dlist_element", cache_argument_marshall_dlist_elem, 1);
 
 }
 

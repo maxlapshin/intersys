@@ -11,6 +11,12 @@ module Cache
   class ObjectNotFound < CacheException
   end
   
+  class MarshallError < CacheException
+  end
+
+  class UnMarshallError < CacheException
+  end
+  
   class Definition
     def initialize(database, class_name, name)
       @database = database
@@ -52,6 +58,20 @@ module Cache
   end
   
   class Argument < Definition
+    def marshall_dlist(list)
+      list.each do |elem|
+        marshall_dlist_element(elem)
+      end
+    end
+  end
+  
+  class Status
+    attr_accessor :code
+    attr_accessor :message
+    def initialize(code, message)
+      @code = code
+      @message = message
+    end
   end
 
   require 'cache'
@@ -137,11 +157,12 @@ module Cache
   class Query
     attr_reader :database
     
-    alias :native_initialize :initialize
     def initialize(database, query)
       @database = database
       native_initialize(database, query.to_wchar)
     end
+    
+    
   end
   
   class Database
