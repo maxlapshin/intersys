@@ -1,4 +1,4 @@
-#include "cache.h"
+#include "intersys.h"
 
 VALUE string_to_wchar(VALUE self) {
 	wchar_t w_chars[RSTRING(self)->len + 1];

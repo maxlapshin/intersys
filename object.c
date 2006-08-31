@@ -1,20 +1,20 @@
-#include "cache.h"
+#include "intersys.h"
 
 
-void cache_object_free(struct rbObject* object) {
+void intersys_object_free(struct rbObject* object) {
 	if (object->oref) {
 		RUN(cbind_object_release(object->database, object->oref));
 	}
 	free(object);
 }
 
-VALUE cache_object_s_allocate(VALUE klass) {
+VALUE intersys_object_s_allocate(VALUE klass) {
 	struct rbObject* object = ALLOC(struct rbObject);
 	bzero(object, sizeof(struct rbObject));
-	return Data_Wrap_Struct(klass, 0, cache_object_free, object);
+	return Data_Wrap_Struct(klass, 0, intersys_object_free, object);
 }
 
-VALUE cache_object_initialize(VALUE self) {
+VALUE intersys_object_initialize(VALUE self) {
 	struct rbObject* object;
 	struct rbDatabase* base;
 	VALUE klass = rb_funcall(self, rb_intern("class"), 0);
@@ -25,7 +25,7 @@ VALUE cache_object_initialize(VALUE self) {
 	return self;
 }
 
-VALUE cache_object_open_by_id(VALUE self, VALUE r_database, VALUE name, VALUE oid) {
+VALUE intersys_object_open_by_id(VALUE self, VALUE r_database, VALUE name, VALUE oid) {
 	int concurrency = 1;
 	int timeout = 5;
 	int error;
@@ -52,7 +52,7 @@ VALUE cache_object_open_by_id(VALUE self, VALUE r_database, VALUE name, VALUE oi
 	return r_object;
 }
 
-VALUE cache_object_create(VALUE self, VALUE r_database, VALUE name) {
+VALUE intersys_object_create(VALUE self, VALUE r_database, VALUE name) {
 	wchar_t *init_val = NULL;
 	struct rbDatabase *database;
 	struct rbObject *object;
@@ -68,13 +68,13 @@ VALUE cache_object_create(VALUE self, VALUE r_database, VALUE name) {
 }
 
 
-VALUE cache_object_methods(VALUE self) {
+VALUE intersys_object_methods(VALUE self) {
 	struct rbObject* object;
 	Data_Get_Struct(self, struct rbObject, object);
 	return rb_ary_new();
 }
 
-VALUE cache_object_properties(VALUE self) {
+VALUE intersys_object_properties(VALUE self) {
 	struct rbObject* object;
 	Data_Get_Struct(self, struct rbObject, object);
 	return rb_ary_new();
@@ -82,7 +82,7 @@ VALUE cache_object_properties(VALUE self) {
 
 
 
-VALUE cache_object_get(VALUE self, VALUE r_property) {
+VALUE intersys_object_get(VALUE self, VALUE r_property) {
 	struct rbObject* object;
 	struct rbDefinition* property;
 
@@ -94,7 +94,7 @@ VALUE cache_object_get(VALUE self, VALUE r_property) {
 	return rb_funcall(self, rb_intern("intern_result"), 2, INT2FIX(0), r_property);
 }
 
-VALUE cache_object_set(VALUE self, VALUE r_property, VALUE value) {
+VALUE intersys_object_set(VALUE self, VALUE r_property, VALUE value) {
 	struct rbObject* object;
 	struct rbDefinition* property;
 
@@ -147,7 +147,7 @@ VALUE extract_next_dlist_elem(char *dlist, int* elem_size) {
 }
 
 
-VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
+VALUE intersys_object_result(VALUE self, VALUE index, VALUE r_property) {
 	struct rbObject* object;
 	struct rbDefinition* property;
     bool_t is_null;
@@ -299,7 +299,7 @@ VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property) {
 }
 
 
-VALUE cache_object_param(VALUE self, VALUE obj, VALUE r_property) {
+VALUE intersys_object_param(VALUE self, VALUE obj, VALUE r_property) {
 	struct rbObject* object;
 	struct rbObject* param;
 	struct rbDefinition* property;

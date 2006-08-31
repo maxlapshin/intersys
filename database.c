@@ -1,18 +1,18 @@
-#include "cache.h"
+#include "intersys.h"
 
-void cache_base_free(struct rbDatabase* base) {
+void intersys_base_free(struct rbDatabase* base) {
 	RUN(cbind_free_db(base->database));
 	RUN(cbind_free_conn(base->connection));
 	free(base);
 }
 
-VALUE cache_base_s_allocate(VALUE klass) {
-	struct rbDatabase* cache_base = ALLOC(struct rbDatabase);
-	bzero(cache_base, sizeof(struct rbDatabase));
-	return Data_Wrap_Struct(klass, 0, cache_base_free, cache_base);
+VALUE intersys_base_s_allocate(VALUE klass) {
+	struct rbDatabase* intersys_base = ALLOC(struct rbDatabase);
+	bzero(intersys_base, sizeof(struct rbDatabase));
+	return Data_Wrap_Struct(klass, 0, intersys_base_free, intersys_base);
 }
 
-VALUE cache_base_initialize(VALUE self, VALUE options) {
+VALUE intersys_base_initialize(VALUE self, VALUE options) {
 	return rb_funcall(self, rb_intern("connect"), 1, options);
 }
 
@@ -27,7 +27,7 @@ static VALUE connect_get_options(VALUE options, char *opt_name, char *opt_defaul
 	return res;
 }
 
-VALUE cache_base_connect(VALUE self, VALUE options) {
+VALUE intersys_base_connect(VALUE self, VALUE options) {
 	struct rbDatabase* base;
 	char conn_str[256];
 	wchar_t w_conn_str[256];
@@ -59,28 +59,28 @@ VALUE cache_base_connect(VALUE self, VALUE options) {
 	return self;
 }
 
-VALUE cache_base_start(VALUE self) {
+VALUE intersys_base_start(VALUE self) {
 	struct rbDatabase* base;
 	Data_Get_Struct(self, struct rbDatabase, base);
 	RUN(cbind_tstart(base->database));
 	return Qtrue;
 }
 
-VALUE cache_base_commit(VALUE self) {
+VALUE intersys_base_commit(VALUE self) {
 	struct rbDatabase* base;
 	Data_Get_Struct(self, struct rbDatabase, base);
 	RUN(cbind_tcommit(base->database));
 	return Qtrue;
 }
 
-VALUE cache_base_rollback(VALUE self) {
+VALUE intersys_base_rollback(VALUE self) {
 	struct rbDatabase* base;
 	Data_Get_Struct(self, struct rbDatabase, base);
 	RUN(cbind_trollback(base->database));
 	return Qtrue;
 }
 
-VALUE cache_base_level(VALUE self) {
+VALUE intersys_base_level(VALUE self) {
 	struct rbDatabase* base;
 	int level;
 	Data_Get_Struct(self, struct rbDatabase, base);

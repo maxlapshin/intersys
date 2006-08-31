@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'cache-ruby'
+require 'intersys-ruby'
 
 exit
 

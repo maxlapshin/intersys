@@ -1,6 +1,6 @@
-#include "cache.h"
+#include "intersys.h"
 
-void cache_definition_free(struct rbDefinition* definition) {
+void intersys_definition_free(struct rbDefinition* definition) {
 	switch(definition->type) {
 		case D_PROPERTY: {
 			RUN(cbind_free_prop_def(definition->def));
@@ -19,13 +19,13 @@ void cache_definition_free(struct rbDefinition* definition) {
 	free(definition);
 }
 
-VALUE cache_definition_s_allocate(VALUE klass) {
+VALUE intersys_definition_s_allocate(VALUE klass) {
 	struct rbDefinition* definition = ALLOC(struct rbDefinition);
 	bzero(definition, sizeof(struct rbDefinition));
-	return Data_Wrap_Struct(klass, 0, cache_definition_free, definition);
+	return Data_Wrap_Struct(klass, 0, intersys_definition_free, definition);
 }
 
-VALUE cache_definition_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
+VALUE intersys_definition_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
 	struct rbDatabase* database;
 	struct rbDefinition* definition;
 	
@@ -39,33 +39,33 @@ VALUE cache_definition_initialize(VALUE self, VALUE r_database, VALUE class_name
 	return self;
 }
 
-VALUE cache_definition_cpp_type(VALUE self) {
+VALUE intersys_definition_cpp_type(VALUE self) {
 	struct rbDefinition* definition;
 	Data_Get_Struct(self, struct rbDefinition, definition);
 	return INT2FIX(definition->cpp_type);
 }
 
 
-VALUE cache_definition_cache_type(VALUE self) {
+VALUE intersys_definition_cache_type(VALUE self) {
 	struct rbDefinition* definition;
 	Data_Get_Struct(self, struct rbDefinition, definition);
 	return FROMWCSTR(definition->cache_type);
 }
 
-VALUE cache_definition_name(VALUE self) {
+VALUE intersys_definition_name(VALUE self) {
 	struct rbDefinition* definition;
 	Data_Get_Struct(self, struct rbDefinition, definition);
 	return FROMWCSTR(definition->name);
 }
 
-VALUE cache_definition_in_name(VALUE self) {
+VALUE intersys_definition_in_name(VALUE self) {
 	struct rbDefinition* definition;
 	Data_Get_Struct(self, struct rbDefinition, definition);
 	return FROMWCSTR(definition->in_name);
 }
 
 
-VALUE cache_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
+VALUE intersys_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
 	struct rbDefinition* property;
 	VALUE args[] = {r_database, class_name, name};
 	rb_call_super(3, args);
@@ -81,14 +81,14 @@ VALUE cache_property_initialize(VALUE self, VALUE r_database, VALUE class_name, 
 	return self;
 }
 
-VALUE cache_property_set_result(VALUE self) {
+VALUE intersys_property_set_result(VALUE self) {
 	struct rbDefinition* property;
 	Data_Get_Struct(self, struct rbDefinition, property);
     RUN(cbind_set_next_arg_as_res(property->database, property->cpp_type));    
 	return self;
 }
 
-VALUE cache_method_initialize(VALUE self) {
+VALUE intersys_method_initialize(VALUE self) {
 	struct rbDefinition* method;
 	Data_Get_Struct(self, struct rbDefinition, method);
 
@@ -106,26 +106,26 @@ VALUE cache_method_initialize(VALUE self) {
 	return self;
 }
 
-VALUE cache_method_is_func(VALUE self) {
+VALUE intersys_method_is_func(VALUE self) {
 	struct rbDefinition* method;
 	Data_Get_Struct(self, struct rbDefinition, method);
 	return method->is_func ? Qtrue : Qfalse;
 }
 
 
-VALUE cache_method_is_class_method(VALUE self) {
+VALUE intersys_method_is_class_method(VALUE self) {
 	struct rbDefinition* method;
 	Data_Get_Struct(self, struct rbDefinition, method);
 	return method->is_class_method ? Qtrue : Qfalse;
 }
 
-VALUE cache_method_num_args(VALUE self) {
+VALUE intersys_method_num_args(VALUE self) {
 	struct rbDefinition* method;
 	Data_Get_Struct(self, struct rbDefinition, method);
 	return INT2FIX(method->num_args);
 }
 
-VALUE cache_method_prepare_call(VALUE self) {
+VALUE intersys_method_prepare_call(VALUE self) {
 	struct rbDefinition* method;
 	
 	Data_Get_Struct(self, struct rbDefinition, method);
@@ -135,7 +135,7 @@ VALUE cache_method_prepare_call(VALUE self) {
 	return self;
 }
 
-VALUE cache_method_call(VALUE self, VALUE r_object) {
+VALUE intersys_method_call(VALUE self, VALUE r_object) {
 	struct rbDefinition* method;
 	struct rbObject* object;
 	
@@ -149,7 +149,7 @@ VALUE cache_method_call(VALUE self, VALUE r_object) {
 	return self;
 }
 
-VALUE cache_method_extract_retval(VALUE self, VALUE r_object) {
+VALUE intersys_method_extract_retval(VALUE self, VALUE r_object) {
 	struct rbDefinition* method;
 	struct rbObject* object;
 	
@@ -161,7 +161,7 @@ VALUE cache_method_extract_retval(VALUE self, VALUE r_object) {
 	return rb_funcall(r_object, rb_intern("intern_result"), 2, method->num_args, self);
 }
 
-VALUE cache_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method) {
+VALUE intersys_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method) {
 	struct rbDefinition* argument;
 	struct rbDefinition* method;
 	VALUE args[] = {r_database, class_name, name};
@@ -186,7 +186,7 @@ VALUE cache_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, 
 	return self;
 }
 
-VALUE cache_argument_default_value(VALUE self) {
+VALUE intersys_argument_default_value(VALUE self) {
 	struct rbDefinition* argument;
 	Data_Get_Struct(self, struct rbDefinition, argument);
 	if(!argument->is_default) {
@@ -195,7 +195,7 @@ VALUE cache_argument_default_value(VALUE self) {
 	return rb_str_new(argument->default_value, argument->default_value_size);
 }
 
-VALUE cache_argument_marshall_dlist_elem(VALUE self, VALUE elem) {
+VALUE intersys_argument_marshall_dlist_elem(VALUE self, VALUE elem) {
 	struct rbDefinition* argument;
 	Data_Get_Struct(self, struct rbDefinition, argument);
 	int elem_size;

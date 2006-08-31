@@ -1,17 +1,17 @@
-#include "cache.h"
+#include "intersys.h"
 
-void cache_query_free(struct rbQuery* query) {
+void intersys_query_free(struct rbQuery* query) {
 	RUN(cbind_free_query(query->query));
 	free(query);
 }
 
-VALUE cache_query_s_allocate(VALUE klass) {
+VALUE intersys_query_s_allocate(VALUE klass) {
 	struct rbQuery* query = ALLOC(struct rbQuery);
 	bzero(query, sizeof(struct rbQuery));
-	return Data_Wrap_Struct(klass, 0, cache_query_free, query);
+	return Data_Wrap_Struct(klass, 0, intersys_query_free, query);
 }
 
-VALUE cache_query_initialize(VALUE self, VALUE database, VALUE sql_query) {
+VALUE intersys_query_initialize(VALUE self, VALUE database, VALUE sql_query) {
 	struct rbQuery* query;
 	struct rbDatabase* base;
 	int sql_code;
@@ -22,7 +22,7 @@ VALUE cache_query_initialize(VALUE self, VALUE database, VALUE sql_query) {
 	return self;
 }
 
-VALUE cache_query_execute(VALUE self) {
+VALUE intersys_query_execute(VALUE self) {
 	struct rbQuery* query;
 	int sql_code;
 	int res;
@@ -33,7 +33,7 @@ VALUE cache_query_execute(VALUE self) {
 	return self;
 }
 
-VALUE cache_query_column_name(h_query query, int i) {
+VALUE intersys_query_column_name(h_query query, int i) {
 	int len;
 	const wchar_t *res;
 	RUN(cbind_query_get_col_name_len(query, i, &len));
@@ -41,7 +41,7 @@ VALUE cache_query_column_name(h_query query, int i) {
 	return rb_funcall(rb_str_new((char *)res, len),rb_intern("from_wchar"), 0);
 }
 
-VALUE cache_query_get_data(VALUE self, VALUE index) {
+VALUE intersys_query_get_data(VALUE self, VALUE index) {
 	struct rbQuery* query;
 	int type = 0;
 	VALUE ret = Qnil;
@@ -54,7 +54,7 @@ VALUE cache_query_get_data(VALUE self, VALUE index) {
 	return ret;
 }
 
-VALUE cache_query_fetch(VALUE self) {
+VALUE intersys_query_fetch(VALUE self) {
 	struct rbQuery* query;
 	VALUE columns, data;
 	Data_Get_Struct(self, struct rbQuery, query);
@@ -80,7 +80,7 @@ VALUE cache_query_fetch(VALUE self) {
 	
 	RUN(cbind_query_get_num_cols(query->query, &num_cols));
 	for(i = 0; i < num_cols; i++) {
-		rb_ary_push(columns, cache_query_column_name(query->query, i));
+		rb_ary_push(columns, intersys_query_column_name(query->query, i));
 	}
 	
 	for(i = 0; i < num_cols; i++) {
@@ -90,7 +90,7 @@ VALUE cache_query_fetch(VALUE self) {
 	return data;
 }
 
-VALUE cache_query_close(VALUE self) {
+VALUE intersys_query_close(VALUE self) {
 	struct rbQuery* query;
 	Data_Get_Struct(self, struct rbQuery, query);
 	RUN(cbind_query_close(query->query));

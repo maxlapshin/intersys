@@ -1,22 +1,22 @@
 #!/usr/bin/env ruby
 require 'dl/import'
 
-module Cache
+module Intersys
   extend DL::Importable
-  dlload("/Applications/Cache/bin/libcbind.dylib")
-  class CacheException < StandardError
+  dlload("/Applications/intersys/bin/libcbind.dylib")
+  class intersysException < StandardError
   end
   
-  class ObjectNotFound < CacheException
+  class ObjectNotFound < intersysException
   end
   
-  class MarshallError < CacheException
+  class MarshallError < intersysException
   end
 
-  class UnMarshallError < CacheException
+  class UnMarshallError < intersysException
   end
   
-  class ConnectionError < CacheException
+  class ConnectionError < intersysException
   end
   
   def self.handle_error(error_code, message, file, line)
@@ -80,7 +80,7 @@ module Cache
     end
   end
 
-  require 'cache'
+  require 'intersys'
   
 
   class Object
@@ -129,39 +129,39 @@ module Cache
     end
     
     
-    def cache_methods
+    def intersys_methods
       @@methods ||= intern_methods.map{|method| method.from_wchar.downcase.to_sym}
     end
     
-    def cache_properties
+    def intersys_properties
       @@properties ||= intern_properties.map{|prop| prop.from_wchar.downcase.to_sym}
     end
     
-    def cache_setters
-      @@setters ||= cache_properties.map {|prop| "#{prop}=".to_sym}
+    def intersys_setters
+      @@setters ||= intersys_properties.map {|prop| "#{prop}=".to_sym}
     end
     
-    def cache_get(property)
+    def intersys_get(property)
       intern_get(self.class.property(property))
     end
     
-    def cache_set(property, value)
+    def intersys_set(property, value)
       intern_set(self.class.property(property), value)
     end
     
-    def cache_call(method, *args)
+    def intersys_call(method, *args)
       self.class.method(method).call(self, *args)
     end
     
     def method_missing(method, *args)
       if match_data = method.to_s.match(/(\w+)=/)
-        return cache_set(match_data.captures.first, args.first)
+        return intersys_set(match_data.captures.first, args.first)
       end
       begin
-        return cache_get(method)
+        return intersys_get(method)
       rescue
         begin
-          return cache_call(method, args)
+          return intersys_call(method, args)
         rescue
         end
       end
@@ -169,11 +169,11 @@ module Cache
     end
     
     def save
-      cache_call("%Save")
+      intersys_call("%Save")
     end
     
     def id
-      cache_call("%Id").to_i
+      intersys_call("%Id").to_i
     end
   end
   
