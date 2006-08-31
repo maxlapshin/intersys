@@ -14,7 +14,7 @@ alias :old_cpp_include :cpp_include
 #end
 #find_library "cbind", "cbind_alloc_db","/Applications/Cache/bin" 
 
-find_header "c_api.h", "/Applications/Cache/dev/cpp/include/" 
-$CFLAGS << " -I/Applications/Cache/dev/cpp/include/ -Wall" 
+find_header "c_api.h", "/Applications/Cache/dev/cpp/include/", "/Developer/Examples/Cache/cpp/include/"
+$CFLAGS << " -I/Applications/Cache/dev/cpp/include/ -I/Developer/Examples/Cache/cpp/include/ -Wall" 
 create_makefile 'cache'
 

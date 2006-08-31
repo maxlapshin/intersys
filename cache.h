@@ -51,8 +51,120 @@ struct rbDefinition {
 
 enum { D_PROPERTY, D_METHOD, D_ARGUMENT};
 
+enum {
+	ERR_CONN_LINK_FAILURE = 461
+};
 
+
+extern VALUE mCache, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound, cStatus;
+extern VALUE cTime, cMarshallError, cUnMarshallError;
+
+
+/****** Common functions ******/
+
+VALUE string_to_wchar(VALUE self);
 int run(int error, char* file, int line);
+VALUE string_from_wchar(VALUE self);
+VALUE wcstr_new(const wchar_t *w_str);
+
+/******* Database functions *******/
+
+void cache_base_free(struct rbDatabase* base);
+VALUE cache_base_s_allocate(VALUE klass);
+VALUE cache_base_initialize(VALUE self, VALUE options);
+VALUE cache_base_connect(VALUE self, VALUE options);
+VALUE cache_base_start(VALUE self);
+VALUE cache_base_commit(VALUE self);
+VALUE cache_base_rollback(VALUE self);
+VALUE cache_base_level(VALUE self);
+
+
+/******* Query functions *******/
+
+void cache_query_free(struct rbQuery* query);
+VALUE cache_query_s_allocate(VALUE klass);
+VALUE cache_query_initialize(VALUE self, VALUE database, VALUE sql_query);
+VALUE cache_query_execute(VALUE self);
+VALUE cache_query_column_name(h_query query, int i);
+VALUE cache_query_get_data(VALUE self, VALUE index);
+VALUE cache_query_fetch(VALUE self);
+VALUE cache_query_close(VALUE self);
+
+
+
+/******* Object functions *******/
+
+void cache_object_free(struct rbObject* object);
+VALUE cache_object_s_allocate(VALUE klass);
+VALUE cache_object_initialize(VALUE self);
+VALUE cache_object_open_by_id(VALUE self, VALUE r_database, VALUE name, VALUE oid);
+VALUE cache_object_create(VALUE self, VALUE r_database, VALUE name);
+VALUE cache_object_methods(VALUE self);
+VALUE cache_object_properties(VALUE self);
+VALUE cache_object_get(VALUE self, VALUE r_property);
+VALUE cache_object_set(VALUE self, VALUE r_property, VALUE value);
+VALUE extract_next_dlist_elem(char *dlist, int* elem_size);
+VALUE cache_object_result(VALUE self, VALUE index, VALUE r_property);
+VALUE cache_object_param(VALUE self, VALUE obj, VALUE r_property);
+
+
+/******* Properties, definitions, arguments, methods functions *******/
+
+void cache_definition_free(struct rbDefinition* definition);
+VALUE cache_definition_s_allocate(VALUE klass);
+VALUE cache_definition_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name);
+VALUE cache_definition_cpp_type(VALUE self);
+VALUE cache_definition_cache_type(VALUE self);
+VALUE cache_definition_name(VALUE self);
+VALUE cache_definition_in_name(VALUE self);
+VALUE cache_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name);
+VALUE cache_property_set_result(VALUE self);
+VALUE cache_method_initialize(VALUE self);
+VALUE cache_method_is_func(VALUE self);
+VALUE cache_method_is_class_method(VALUE self);
+VALUE cache_method_num_args(VALUE self);
+VALUE cache_method_prepare_call(VALUE self);
+VALUE cache_method_call(VALUE self, VALUE r_object);
+VALUE cache_method_extract_retval(VALUE self, VALUE r_object);
+VALUE cache_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method);
+VALUE cache_argument_default_value(VALUE self);
+VALUE cache_argument_marshall_dlist_elem(VALUE self, VALUE elem);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define RUN(x) run((x), __FILE__, __LINE__)
 #define QUERY_RUN(x) {int sql_code = 0; (x); run(sql_code, __FILE__, __LINE__);}
 #define STR(x) (RSTRING(x)->ptr)
@@ -70,5 +182,6 @@ int run(int error, char* file, int line);
 
 #define DLISTSIZE (argument->current_dlist_amount - argument->current_dlist_size)
 #define PUT_DLIST(func, value) RUN(func(argument->current_dlist, DLISTSIZE, value, &elem_size))
+
 
 #endif /* __cache_ruby */

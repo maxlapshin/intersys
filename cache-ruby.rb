@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 require 'dl/import'
 
-
 module Cache
   extend DL::Importable
   dlload("/Applications/Cache/bin/libcbind.dylib")
@@ -15,6 +14,13 @@ module Cache
   end
 
   class UnMarshallError < CacheException
+  end
+  
+  class ConnectionError < CacheException
+  end
+  
+  def self.handle_error(error_code, message, file, line)
+    #raise ConnectionError if error_code == 461
   end
   
   class Definition
@@ -38,7 +44,7 @@ module Cache
   public
     
     def initialize(database, class_name, name)
-      super(database, class_name, name)
+      super(database, class_name, "%"+name.to_s.capitalize)
       method_initialize
       @args = []
       num_args.times do
@@ -78,31 +84,48 @@ module Cache
   
 
   class Object
+    @@class_names = {}
+    def self.class_names
+      @@class_names
+    end
     
     def self.database(db = nil)
       @@database = db if db
       @@database
     end
     
+    class << self
+      def set_class_name(name)
+        @class_name = name.to_wchar
+      end
+      
+      def get_class_name
+        @class_name ? @class_name.from_wchar : nil
+      end
+    end
+    
     def self.class_name(name = nil)
-      @@class_name = name.to_wchar if name
-      @@class_name ? @@class_name.from_wchar : nil
+      if name
+        @@class_names[name] = self
+        set_class_name(name)
+      end
+      get_class_name
     end
     
     def self.create
-      create_intern(@@database, @@class_name)
+      create_intern(database, class_name)
     end
 
     def self.open(id)
-      open_intern(@@database, @@class_name, id.to_s.to_wchar)
+      open_intern(database, class_name, id.to_s.to_wchar)
     end
     
     def self.property(name)
-      Property.new(@@database, @@class_name, name.to_s.to_wchar)
+      Property.new(database, class_name, name.to_s.to_wchar)
     end
     
     def self.method(name)
-      Method.new(@@database, @@class_name, name.to_s.to_wchar)
+      Method.new(database, class_name, name.to_s.to_wchar)
     end
     
     
