@@ -41,14 +41,12 @@ void Init_cache() {
 	cObject = rb_define_class_under(mIntersys, "Object", rb_cObject);
 	rb_define_alloc_func(cObject, intersys_object_s_allocate);
 	rb_define_method(cObject, "initialize", intersys_object_initialize, 0);
-	rb_define_singleton_method(cObject, "create_intern", intersys_object_create, 2);
-	rb_define_singleton_method(cObject, "open_intern", intersys_object_open_by_id, 3);
+	rb_define_singleton_method(cObject, "create_intern", intersys_object_create, 0);
+	rb_define_singleton_method(cObject, "open_intern", intersys_object_open_by_id, 1);
 	rb_define_method(cObject, "intern_methods", intersys_object_methods, 0);
 	rb_define_method(cObject, "intern_properties", intersys_object_properties, 0);
 	rb_define_method(cObject, "intern_get", intersys_object_get, 1);
 	rb_define_method(cObject, "intern_set", intersys_object_set, 2);
-	rb_define_method(cObject, "intern_result", intersys_object_result, 2);
-	rb_define_method(cObject, "intern_param", intersys_object_param, 2);
 
 	cDefinition = rb_const_get(mIntersys, rb_intern("Definition"));
 	rb_define_alloc_func(cDefinition, intersys_definition_s_allocate);
@@ -68,13 +66,14 @@ void Init_cache() {
 	rb_define_method(cMethod, "is_class_method?", intersys_method_is_class_method, 0);
 	rb_define_method(cMethod, "num_args", intersys_method_num_args, 0);
 	rb_define_method(cMethod, "prepare_call!", intersys_method_prepare_call, 0);
-	rb_define_method(cMethod, "intern_call!", intersys_method_call, 1);
+	rb_define_method(cMethod, "intern_call!", intersys_method_call, 0);
 	rb_define_method(cMethod, "extract_retval!", intersys_method_extract_retval, 1);
 	
 	cArgument = rb_const_get(mIntersys, rb_intern("Argument"));
 	rb_define_method(cArgument, "initialize", intersys_argument_initialize, 4);
 	rb_define_method(cArgument, "default", intersys_argument_default_value, 0);
 	rb_define_method(cArgument, "marshall_dlist_element", intersys_argument_marshall_dlist_elem, 1);
+	rb_define_method(cObject, "set!", intersys_argument_set, 1);
 
 }
 

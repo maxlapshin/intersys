@@ -55,11 +55,11 @@ module Intersys
     def call(object, *method_args)
       prepare_call!
       raise ArgumentError, "wrong number of arguments (#{method_args.size} for #{args.size})" if args.size < method_args.size
-      args.each do |arg|
-        object.intern_param(method_args.shift, arg)
+      args.each_with_index do |arg, i|
+        arg.set!(method_args[i])
       end
       intern_call!(object)
-      extract_retval!(object)
+      extract_retval!
     end
   end
   
@@ -84,40 +84,67 @@ module Intersys
   
 
   class Object
+protected
     @@class_names = {}
     def self.class_names
       @@class_names
     end
     
+    def self.set_class_name(name)
+      if name.index(".")
+        prefix name.split(".").first
+        @class_name = name
+      else
+        @class_name = prefix + "." + name
+      end
+      @class_name = @class_name.to_wchar
+    end
+    
+    def self.calculate_class_name
+    end
+      
+    def self.get_class_name
+      @class_name ? @class_name.from_wchar : nil
+    end
+
+public
+    def self.prefix(prefix_name = nil)
+      if prefix_name
+        @prefix = prefix_name.to_wchar
+      end
+      @prefix.from_wchar
+    end
+
+    
+    def self.class_name(name = nil)
+      if name
+        Cache::Object.class_names[name] = self
+        set_class_name(name)
+      end
+      get_class_name
+    end
+
     def self.database(db = nil)
       @@database = db if db
       @@database
     end
     
-    class << self
-      def set_class_name(name)
-        @class_name = name.to_wchar
-      end
-      
-      def get_class_name
-        @class_name ? @class_name.from_wchar : nil
-      end
+
+    
+    def self.concurrency
+      1
     end
     
-    def self.class_name(name = nil)
-      if name
-        @@class_names[name] = self
-        set_class_name(name)
-      end
-      get_class_name
+    def self.timeout
+      5
     end
     
     def self.create
-      create_intern(database, class_name)
+      create_intern
     end
 
     def self.open(id)
-      open_intern(database, class_name, id.to_s.to_wchar)
+      open_intern(id.to_s.to_wchar)
     end
     
     def self.property(name)
@@ -126,6 +153,10 @@ module Intersys
     
     def self.method(name)
       Method.new(database, class_name, name.to_s.to_wchar)
+    end
+    
+    def self.method_missing(method_name, *args)
+      method(method_name).call(nil, *args)
     end
     
     
