@@ -4,29 +4,38 @@ require 'rubygems'
 require_gem 'activesupport'
 require 'active_support'
 
-
+#
+# Module, keeping all classes, required to work with Cache via object and SQL interfaces
 module Intersys
   extend DL::Importable
   dlload("/Applications/Cache/bin/libcbind.dylib")
+  
+  # Basic exception, thrown in intersys driver
   class IntersysException < StandardError
   end
   
+  # Exception, thrown from Object.open method, when no such ID in database
   class ObjectNotFound < IntersysException
   end
   
+  # Error of marshalling arguments
   class MarshallError < IntersysException
   end
 
+  # Error of unmarshalling results
   class UnMarshallError < IntersysException
   end
   
+  # Error establishing connection with database
   class ConnectionError < IntersysException
   end
   
   def self.handle_error(error_code, message, file, line)
     #raise ConnectionError if error_code == 461
   end
-  
+
+  # Basic class for arguments, methods and properties description
+  # for internal use only
   class Definition
     def initialize(database, class_name, name)
       @database = database
@@ -36,9 +45,13 @@ module Intersys
     end
   end
   
+  # Class representing one object property
+  # for internal use only
   class Property < Definition
   end
   
+  # Class representing one object method
+  # for internal use only
   class Method < Definition
     attr_accessor :args
   protected
@@ -67,6 +80,8 @@ module Intersys
     end
   end
   
+  # Class representing one method argument
+  # for internal use only
   class Argument < Definition
     def marshall_dlist(list)
       list.each do |elem|
@@ -74,7 +89,8 @@ module Intersys
       end
     end
   end
-  
+
+  # Method can return Cache %Status. It is marshalled to this class
   class Status
     attr_accessor :code
     attr_accessor :message
@@ -84,37 +100,34 @@ module Intersys
     end
   end
 
-  require 'intersys_cache'
+  require File.dirname(__FILE__) + '/intersys_cache'
   
 
+  # Basic class for all classes, through which is performed access to Cache classes
+  # For each Cache class must be created ruby class, inherited from Intersys::Object
+  # 
+  # By default prefix "User" is selected. If Cache class has another prefix, it must
+  # be provided explicitly via method "prefix":
+  #   class List < Intersys::Object
+  #     prefix "%Library"
+  #   end
+  #
+  # By default name of Cache class is taken the same as name of ruby class.
+  # Thus in this example this class List will be marshalled to Cache class 
+  # %Library.List
+  #
   class Object
 
     class << self
-      def common_get_or_set(name, default_value = nil)
-        unless var = Intersys::Object.instance_variable_get(name)
-          default = block_given? ? yield : default_value
-          var = Intersys::Object.instance_variable_set(name, default)
-        end
-        var
-      end
-      
+    protected      
       def class_names
         common_get_or_set("@class_names", {})
-      end
-      
-      def lookup(class_name)
-        class_names[class_name] || raise(UnMarshallError, "Couldn't find registered class with Cache name '#{class_name}'")
       end
 
       def prefix=(name)
         @prefix = name
         @class_name = @prefix + "." + (@class_name ? @class_name.split(".").last : self.to_s)
         register_name!
-      end
-    
-      def prefix(name = nil)
-        self.prefix = name if name
-        @prefix ||= "User"
       end
 
       def class_name=(name)
@@ -125,6 +138,39 @@ module Intersys
           @class_name = self.prefix + "." + name
         end
         register_name!
+      end
+
+      # Register class name of current class in global list
+      def register_name!
+        if i = class_names.index(self)
+          class_names.delete(i)
+        end
+        class_names[class_name] = self
+        class_name
+      end
+    public    
+      # Help to work with instance variables of Intersys::Object class
+      # required, because list of registered descendants of Intersys::Object,
+      # database connection etc. should be in one place
+      def common_get_or_set(name, default_value = nil)
+        unless var = Intersys::Object.instance_variable_get(name)
+          default = block_given? ? yield : default_value
+          var = Intersys::Object.instance_variable_set(name, default)
+        end
+        var
+      end
+
+      # Takes Cache class name and try to resolve it to Ruby class
+      def lookup(class_name)
+        class_names[class_name] || raise(UnMarshallError, "Couldn't find registered class with Cache name '#{class_name}'")
+      end
+    
+      # Each Cache class has prefix before it's name: namespace.
+      # this method set's prefix for current class is provided,
+      # or just returns current prefix
+      def prefix(name = nil)
+        self.prefix = name if name
+        @prefix ||= "User"
       end
 
       def class_name(name = nil)
@@ -139,14 +185,10 @@ module Intersys
         end
       end
             
-      def register_name!
-        if i = class_names.index(self)
-          class_names.delete(i)
-        end
-        class_names[class_name] = self
-        class_name
-      end
-      
+      # This method takes block and executes it between
+      # START TRANSACTION and COMMIT TRANSACTION
+      #
+      # In case of exception ROLLBACK TRANSACTION is called
       def transaction
         return unless block_given?
         database.start
@@ -159,14 +201,17 @@ module Intersys
         end
       end
 
+      # Returns ClassDefinition object for current class
       def reflector
         @reflector ||= Intersys::Reflection::ClassDefinition.open(class_name)
       end
       
+      # returns list of methods for this class
       def intersys_methods
         @methods ||= reflector.intersys_get("Methods")
       end
 
+      # returns list of properties for current class
       def intersys_properties
         @properties ||= reflector.properties
       end
@@ -179,26 +224,35 @@ module Intersys
         1
       end
     
+      # timeout for connection
       def timeout
         5
       end
     
+      # create new instance of this class
       def create
         create_intern
       end
 
+      # try to load class instance from database for this id
+      # ID can be not integer
       def open(id)
         open_intern(id.to_s.to_wchar)
       end
-    
+      
+      # Loads property definition with required name for required object
+      # for internal use only
       def property(name, object)
         Property.new(database, class_name, name.to_s.to_wchar, object)
       end
-    
+  
+      # Loads method definition with required name for required object
+      # for internal use only
       def method(name, object)
         Method.new(database, class_name, name.to_s.to_wchar, object)
       end
-    
+      
+      # call class method
       def call(method_name, *args)
         method(method_name, nil).call(*args)
       end
@@ -208,15 +262,17 @@ module Intersys
     
     end
     
-    
+    # Get the specified property
     def intersys_get(property)
       self.class.property(property, self).get
     end
     
+    # Set the specified property
     def intersys_set(property, value)
       self.class.property(property, self).set(value)
     end
     
+    # Call the specified method
     def intersys_call(method, *args)
       self.class.method(method, self).call(*args)
     end
@@ -228,7 +284,8 @@ module Intersys
       end
       begin
         return intersys_get(method_name)
-      rescue
+      rescue StandardError => e
+        puts e
         begin
           return intersys_call(method_name, *args)
         rescue

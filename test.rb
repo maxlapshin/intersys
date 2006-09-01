@@ -38,20 +38,6 @@ end
 if true
   
   
-  Article.transaction do
-    @cdef = Intersys::Reflection::ClassDefinition.open("%Dictionary.ClassDefinition")
-    #puts @cdef.name
-    #puts @cdef.intersys_get("ClassType")
-    #puts @cdef.intersys_get("Super")
-    #@props = @cdef.intersys_get("Properties")
-    @props = @cdef.properties
-    puts @props.inspect
-    #@methods = @cdef.intersys_get("Methods")
-    #puts Intersys::Reflection::ClassDefinition.intersys_methods.inspect
-    #GC.start
-    #puts Intersys::Reflection::ClassDefinition.intersys_properties.inspect
-  end if false
-  
   if false
     @cdef = Intersys::Reflection::ClassDefinition.call("%New", "User.Person")
     @cdef.class_type = "persistent"
