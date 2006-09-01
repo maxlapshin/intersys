@@ -2,6 +2,7 @@
 
 
 static void intersys_object_free(struct rbObject* object) {
+//	printf("Releasing object %d\n", object->oref);
 	if (object->oref) {
 		RUN(cbind_object_release(object->database, object->oref));
 	}
@@ -62,46 +63,6 @@ VALUE intersys_object_create(VALUE self) {
 	
 	RUN(cbind_create_new(object->database, CLASS_NAME(object), init_val,&object->oref));
 	return r_object;
-}
-
-
-VALUE intersys_object_methods(VALUE self) {
-	struct rbObject* object;
-	Data_Get_Struct(self, struct rbObject, object);
-	return rb_ary_new();
-}
-
-VALUE intersys_object_properties(VALUE self) {
-	struct rbObject* object;
-	Data_Get_Struct(self, struct rbObject, object);
-	return rb_ary_new();
-}
-
-
-
-VALUE intersys_object_get(VALUE self, VALUE r_property) {
-	struct rbObject* object;
-	struct rbDefinition* property;
-
-	Data_Get_Struct(self, struct rbObject, object);
-	Data_Get_Struct(r_property, struct rbDefinition, property);
-
-	rb_funcall(r_property, rb_intern("set_as_result!"), 0);
-    RUN(cbind_get_prop(object->database, object->oref, property->in_name));
-	return rb_funcall(r_property, rb_intern("extract_retval!"), 0);
-}
-
-VALUE intersys_object_set(VALUE self, VALUE r_property, VALUE value) {
-	struct rbObject* object;
-	struct rbDefinition* property;
-
-	Data_Get_Struct(self, struct rbObject, object);
-	Data_Get_Struct(r_property, struct rbDefinition, property);
-
-    RUN(cbind_reset_args(object->database));
-	rb_funcall(self, rb_intern("intern_param"), 2, value, r_property);
-	RUN(cbind_set_prop(object->database, object->oref, property->in_name));
-	return self;
 }
 
 

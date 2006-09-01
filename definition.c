@@ -1,6 +1,7 @@
 #include "intersys.h"
 
 static void intersys_definition_free(struct rbDefinition* definition) {
+//	printf("Releasing definition (%d)\n", definition->type);
 	switch(definition->type) {
 		case D_PROPERTY: {
 			RUN(cbind_free_prop_def(definition->def));
@@ -69,12 +70,14 @@ VALUE intersys_definition_in_name(VALUE self) {
 	return FROMWCSTR(definition->in_name);
 }
 
-VALUE intersys_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
+VALUE intersys_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE object) {
 	struct rbDefinition* property;
+	struct rbObject* obj;
 	VALUE args[] = {r_database, class_name, name};
 	rb_call_super(3, args);
 	
 	Data_Get_Struct(self, struct rbDefinition, property);
+	Data_Get_Struct(object, struct rbObject, obj);
 
 	property->type = D_PROPERTY;
     RUN(cbind_alloc_prop_def(&property->def));
@@ -82,18 +85,38 @@ VALUE intersys_property_initialize(VALUE self, VALUE r_database, VALUE class_nam
     RUN(cbind_get_prop_cpp_type(property->def, &property->cpp_type));
     RUN(cbind_get_prop_cache_type(property->def, &property->cache_type));
     RUN(cbind_get_prop_name(property->def, &property->name));
+	property->oref = obj->oref;
 	return self;
 }
 
-VALUE intersys_property_set_result(VALUE self) {
+
+VALUE intersys_property_get(VALUE self) {
 	struct rbDefinition* property;
+
 	Data_Get_Struct(self, struct rbDefinition, property);
+
+    RUN(cbind_reset_args(property->database));    
     RUN(cbind_set_next_arg_as_res(property->database, property->cpp_type));    
+    RUN(cbind_get_prop(property->database, property->oref, property->in_name));
+	return rb_funcall(self, rb_intern("extract_retval!"), 0);
+}
+
+VALUE intersys_property_set(VALUE self, VALUE value) {
+	struct rbDefinition* property;
+
+	Data_Get_Struct(self, struct rbDefinition, property);
+
+    RUN(cbind_reset_args(property->database));
+	rb_funcall(self, rb_intern("marshall!"), 1, value);
+	RUN(cbind_set_prop(property->database, property->oref, property->in_name));
 	return self;
 }
 
-VALUE intersys_method_initialize(VALUE self) {
+
+
+VALUE intersys_method_initialize(VALUE self, VALUE object) {
 	struct rbDefinition* method;
+	
 	Data_Get_Struct(self, struct rbDefinition, method);
 
 	method->type = D_METHOD;
@@ -104,9 +127,16 @@ VALUE intersys_method_initialize(VALUE self) {
     RUN(cbind_get_mtd_cache_type(method->def, &method->cache_type));
     RUN(cbind_get_mtd_is_cls_mtd(method->def, &method->is_class_method));
     RUN(cbind_get_mtd_num_args(method->def, &method->num_args));
-	method->num_args = 0;
     RUN(cbind_get_mtd_args_info(method->def, &method->args_info));
     RUN(cbind_get_mtd_name(method->def, &method->name));
+	if(object != Qnil) {
+		struct rbObject* obj;
+		Data_Get_Struct(object, struct rbObject, obj);
+		method->oref = obj->oref;
+		rb_iv_set(self, "@object", object);
+	} else {
+		method->oref = -1;
+	}
 	return self;
 }
 
@@ -139,21 +169,15 @@ VALUE intersys_method_prepare_call(VALUE self) {
 	return self;
 }
 
-VALUE intersys_method_call(VALUE self, VALUE r_object) {
+VALUE intersys_method_call(VALUE self) {
 	struct rbDefinition* method;
-	int oref = -1;
 	
 	Data_Get_Struct(self, struct rbDefinition, method);
 
     if (method->cpp_type != CBIND_VOID) {    
         RUN(cbind_set_next_arg_as_res(method->database, method->cpp_type));
     }
-	if(r_object != Qnil) {
-		struct rbObject* object;
-		Data_Get_Struct(r_object, struct rbObject, object);
-		oref = object->oref;
-	}
-    RUN(cbind_run_method(method->database, oref, CLASS_NAME(method), method->in_name));
+    RUN(cbind_run_method(method->database, method->oref, CLASS_NAME(method), method->in_name));
 	return self;
 }
 
@@ -220,7 +244,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 		
 		case CBIND_OBJ_ID: {
             int oref = 0;
-			char_size_t len = 80;
+			char_size_t len = 0;
 			bool_t is_null = 1;
 			VALUE result = Qnil, klass;
 			VALUE class_name_w, class_name;
@@ -233,7 +257,6 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			}
 			class_name_w = rb_wcstr_new(cl_name, len);
 			class_name = FROMWCHAR(class_name_w);
-			printf("Unmarshalling object %s#%d \n", STR(class_name), oref);
 			klass = rb_funcall(cObject, rb_intern("lookup"), 1, class_name);
 			result = rb_funcall(klass, rb_intern("new"), 0);
 			Data_Get_Struct(result, struct rbObject, object);
@@ -380,6 +403,7 @@ VALUE intersys_argument_initialize(VALUE self, VALUE r_database, VALUE class_nam
 
 
 	argument->type = D_ARGUMENT;
+	RUN(cbind_alloc_arg_def(&argument->def));
     RUN(cbind_mtd_arg_get(method->def, argument->def));
     RUN(cbind_get_arg_cpp_type(argument->def, &argument->cpp_type));
     RUN(cbind_get_arg_cache_type(argument->def, &argument->cache_type));

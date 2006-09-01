@@ -3,9 +3,13 @@
 VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound, cStatus;
 VALUE cTime, cMarshallError, cUnMarshallError;
 
+static VALUE my_debug(VALUE self) {
+	printf("Hi!\n");
+	return Qnil;
+}
 
 void Init_intersys() {
-
+	rb_define_method(rb_mKernel, "my_debug", my_debug, 0);
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
 	rb_define_method(rb_cString, "from_wchar", string_from_wchar, 0);
 
@@ -43,10 +47,6 @@ void Init_intersys() {
 	rb_define_method(cObject, "initialize", intersys_object_initialize, 0);
 	rb_define_singleton_method(cObject, "create_intern", intersys_object_create, 0);
 	rb_define_singleton_method(cObject, "open_intern", intersys_object_open_by_id, 1);
-	rb_define_method(cObject, "intern_methods", intersys_object_methods, 0);
-	rb_define_method(cObject, "intern_properties", intersys_object_properties, 0);
-	rb_define_method(cObject, "intern_get", intersys_object_get, 1);
-	rb_define_method(cObject, "intern_set", intersys_object_set, 2);
 
 	cDefinition = rb_const_get(mIntersys, rb_intern("Definition"));
 	rb_define_alloc_func(cDefinition, intersys_definition_s_allocate);
@@ -57,12 +57,14 @@ void Init_intersys() {
 	rb_define_method(cDefinition, "in_name", intersys_definition_in_name, 0);
 
 	cProperty = rb_const_get(mIntersys, rb_intern("Property"));
-	rb_define_method(cProperty, "initialize", intersys_property_initialize, 3);
-	rb_define_method(cProperty, "set_as_result!", intersys_property_set_result, 0);
+	rb_define_method(cProperty, "initialize", intersys_property_initialize, 4);
 	rb_define_method(cProperty, "extract_retval!", intersys_method_extract_retval, 0);
+	rb_define_method(cProperty, "get", intersys_property_get, 0);
+	rb_define_method(cProperty, "set", intersys_property_set, 1);
+	rb_define_method(cProperty, "marshall!", intersys_argument_set, 1);
 
 	cMethod = rb_const_get(mIntersys, rb_intern("Method"));
-	rb_define_method(cMethod, "method_initialize", intersys_method_initialize, 0);
+	rb_define_method(cMethod, "method_initialize", intersys_method_initialize, 1);
 	rb_define_method(cMethod, "is_func?", intersys_method_is_func, 0);
 	rb_define_method(cMethod, "is_class_method?", intersys_method_is_class_method, 0);
 	rb_define_method(cMethod, "num_args", intersys_method_num_args, 0);
@@ -74,7 +76,7 @@ void Init_intersys() {
 	rb_define_method(cArgument, "initialize", intersys_argument_initialize, 4);
 	rb_define_method(cArgument, "default", intersys_argument_default_value, 0);
 	rb_define_method(cArgument, "marshall_dlist_element", intersys_argument_marshall_dlist_elem, 1);
-	rb_define_method(cObject, "set!", intersys_argument_set, 1);
-
+	rb_define_method(cArgument, "marshall!", intersys_argument_set, 1);
+//	printf("Inited\n");
 }
 

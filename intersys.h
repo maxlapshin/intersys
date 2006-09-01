@@ -48,6 +48,8 @@ struct rbDefinition {
 	char* current_dlist;
 	int current_dlist_size;
 	VALUE class_name;
+	//Property definitions
+	int oref;
 };
 
 enum { D_PROPERTY, D_METHOD, D_ARGUMENT};
@@ -99,10 +101,6 @@ VALUE intersys_object_s_allocate(VALUE klass);
 VALUE intersys_object_initialize(VALUE self);
 VALUE intersys_object_open_by_id(VALUE self, VALUE oid);
 VALUE intersys_object_create(VALUE self);
-VALUE intersys_object_methods(VALUE self);
-VALUE intersys_object_properties(VALUE self);
-VALUE intersys_object_get(VALUE self, VALUE r_property);
-VALUE intersys_object_set(VALUE self, VALUE r_property, VALUE value);
 
 
 /******* Properties, definitions, arguments, methods functions *******/
@@ -113,14 +111,15 @@ VALUE intersys_definition_cpp_type(VALUE self);
 VALUE intersys_definition_cache_type(VALUE self);
 VALUE intersys_definition_name(VALUE self);
 VALUE intersys_definition_in_name(VALUE self);
-VALUE intersys_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name);
-VALUE intersys_property_set_result(VALUE self);
-VALUE intersys_method_initialize(VALUE self);
+VALUE intersys_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE object);
+VALUE intersys_property_get(VALUE self);
+VALUE intersys_property_set(VALUE self, VALUE value);
+VALUE intersys_method_initialize(VALUE self, VALUE object);
 VALUE intersys_method_is_func(VALUE self);
 VALUE intersys_method_is_class_method(VALUE self);
 VALUE intersys_method_num_args(VALUE self);
 VALUE intersys_method_prepare_call(VALUE self);
-VALUE intersys_method_call(VALUE self, VALUE r_object);
+VALUE intersys_method_call(VALUE self);
 VALUE intersys_method_extract_retval(VALUE self);
 VALUE intersys_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method);
 VALUE intersys_argument_default_value(VALUE self);

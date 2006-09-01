@@ -46,22 +46,22 @@ module Intersys
     end
   public
     
-    def initialize(database, class_name, name)
+    def initialize(database, class_name, name, object)
       super(database, class_name, name.to_s)
-      method_initialize
+      method_initialize(object)
       @args = []
       num_args.times do
         @args << arg!
       end
     end
     
-    def call(object, *method_args)
+    def call(*method_args)
       prepare_call!
-      raise ArgumentError, "wrong number of arguments (#{method_args.size} for #{args.size})" if args.size < method_args.size
+      raise ArgumentError, "wrong number of arguments (#{method_args.size} for #{args.size})" if method_args.size > args.size 
       args.each_with_index do |arg, i|
-        arg.set!(method_args[i])
+        arg.marshall!(method_args[i])
       end
-      intern_call!(object)
+      intern_call!
       extract_retval!
     end
   end
@@ -89,9 +89,16 @@ module Intersys
   class Object
 
     class << self
+      def common_get_or_set(name, default_value = nil)
+        unless var = Intersys::Object.instance_variable_get(name)
+          default = block_given? ? yield : default_value
+          var = Intersys::Object.instance_variable_set(name, default)
+        end
+        var
+      end
+      
       def class_names
-        Intersys::Object.instance_variable_set("@class_names", {}) unless Intersys::Object.instance_variable_get("@class_names")
-        Intersys::Object.instance_variable_get("@class_names")
+        common_get_or_set("@class_names", {})
       end
       
       def lookup(class_name)
@@ -126,10 +133,9 @@ module Intersys
       end
 
       def database(db = nil)
-        Intersys::Object.instance_variable_set("@database", db) if db
-        Intersys::Object.instance_variable_set("@database", Intersys::Database.new(:user => "_SYSTEM", :password => "SYS", :namespace => "User"))  unless 
-          Intersys::Object.instance_variable_get("@database")
-        Intersys::Object.instance_variable_get("@database")
+        common_get_or_set("@database") do
+          db || Intersys::Database.new(:user => "_SYSTEM", :password => "SYS", :namespace => "User")
+        end
       end
             
       def register_name!
@@ -151,68 +157,67 @@ module Intersys
           raise e
         end
       end
-    end
-    
-    
-    
-    def self.inherited(klass)
-      class_names[klass.class_name] = klass
-    end
-    
-    
 
-    
-    def self.concurrency
-      1
-    end
-    
-    def self.timeout
-      5
-    end
-    
-    def self.create
-      create_intern
-    end
+      def reflector
+        @reflector ||= Intersys::Reflection::ClassDefinition.open(class_name)
+      end
+      
+      def intersys_methods
+        @methods ||= reflector.intersys_get("Methods")
+      end
 
-    def self.open(id)
-      open_intern(id.to_s.to_wchar)
-    end
+      def intersys_properties
+        @properties ||= reflector.properties
+      end
+      
+      def inherited(klass)
+        class_names[klass.class_name] = klass
+      end
     
-    def self.property(name)
-      Property.new(database, class_name, name.to_s.to_wchar)
-    end
+      def concurrency
+        1
+      end
     
-    def self.method(name)
-      Method.new(database, class_name, name.to_s.to_wchar)
-    end
+      def timeout
+        5
+      end
     
+      def create
+        create_intern
+      end
+
+      def open(id)
+        open_intern(id.to_s.to_wchar)
+      end
+    
+      def property(name, object)
+        Property.new(database, class_name, name.to_s.to_wchar, object)
+      end
+    
+      def method(name, object)
+        Method.new(database, class_name, name.to_s.to_wchar, object)
+      end
+    
+      def call(method_name, *args)
+        method(method_name, nil).call(*args)
+      end
+      alias :intersys_call :call
     #def self.method_missing(method_name, *args)
-    #  method(method_name).call(nil, *args)
     #end
     
-    
-    def intersys_methods
-      @@methods ||= intern_methods.map{|method| method.from_wchar.downcase.to_sym}
     end
     
-    def intersys_properties
-      @@properties ||= intern_properties.map{|prop| prop.from_wchar.downcase.to_sym}
-    end
-    
-    def intersys_setters
-      @@setters ||= intersys_properties.map {|prop| "#{prop}=".to_sym}
-    end
     
     def intersys_get(property)
-      intern_get(self.class.property(property))
+      self.class.property(property, self).get
     end
     
     def intersys_set(property, value)
-      intern_set(self.class.property(property), value)
+      self.class.property(property, self).set(value)
     end
     
     def intersys_call(method, *args)
-      self.class.method(method).call(self, *args)
+      self.class.method(method, self).call(*args)
     end
     
     def method_missing(method, *args)
@@ -221,10 +226,10 @@ module Intersys
         return intersys_set(match_data.captures.first, args.first)
       end
       begin
-        return intersys_get(method)
+        return intersys_get(method_name)
       rescue
         begin
-          return intersys_call(method, *args)
+          return intersys_call(method_name, *args)
         rescue
         end
       end
@@ -262,15 +267,65 @@ module Intersys
   module Reflection
     class ClassDefinition < Intersys::Object
       class_name "%Dictionary.ClassDefinition"
+      
+      def save
+        intersys_call("%Save")
+      end
+      
+      def _methods
+        intersys_get("Methods")
+      end
     end
 
     class PropertyDefinition < Intersys::Object
       class_name "%Dictionary.PropertyDefinition"
     end
     
+    class MethodDefinition < Intersys::Object
+      class_name "%Dictionary.MethodDefinition"
+    end
+    
     class RelationshipObject < Intersys::Object
       class_name "%Library.RelationshipObject"
+      
+      def empty?
+        intersys_call("IsEmpty")
+      end
+      
+      def count
+        intersys_call("Count")
+      end
+      alias :size :count
+      
+      def [](index)
+        intersys_call("GetAt", index.to_s)
+      end
+      
+      def each
+        1.upto(count) do |i|
+          yield self[i]
+        end
+      end
+      
+      def each_with_index
+        1.upto(count) do |i|
+          yield self[i], i
+        end
+      end
+      
+      def inspect
+        list = []
+        each do |prop|
+          list << prop.name
+        end
+        list.inspect
+      end
+      alias :to_s :inspect
+      
+      def <<(object)
+        intersys_call("Insert", object)
+      end
+      alias :insert :<<
     end
   end
 end
-

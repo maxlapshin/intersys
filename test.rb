@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'intersys-ruby'
-
+#my_debug
 
 class Article < Intersys::Object
 end
@@ -46,9 +46,54 @@ if true
     #puts @cdef.name
     #puts @cdef.intersys_get("ClassType")
     #puts @cdef.intersys_get("Super")
-    @prop = @cdef.class.property("Properties")
-    @props = @cdef.intersys_get("Properties")
-    puts @props.intersys_call("%Count")
-    #@m @cdef.intersys_get("Methods")
+    #@props = @cdef.intersys_get("Properties")
+    @props = @cdef.properties
+    puts @props.inspect
+    #@methods = @cdef.intersys_get("Methods")
+    #puts Intersys::Reflection::ClassDefinition.intersys_methods.inspect
+    #GC.start
+    #puts Intersys::Reflection::ClassDefinition.intersys_properties.inspect
+  end if false
+  
+  if false
+    @cdef = Intersys::Reflection::ClassDefinition.call("%New", "User.Person")
+    @cdef.class_type = "persistent"
+    @cdef.super = "%Persistent,%Populate,%XML.Adaptor"
+    @props = @cdef.properties
+
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:Name")
+    @props << @prop
+    @prop.type = "%String"
+
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:SSN")
+    @props << @prop
+    @prop.type = "%String"
+
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:Title")
+    @props << @prop
+    @prop.type = "%String"
+
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:DOB")
+    @props << @prop
+    @prop.type = "%String"
+    
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:Home")
+    @props << @prop
+    @prop.type = "Sample.Address"
+    
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:Business")
+    @props << @prop
+    @prop.type = "Sample.Address"
+    
+    @cdef.save
   end
+  #@cdef = Intersys::Reflection::ClassDefinition.open("User.Person")
+  if false
+    @p = Person.intersys_call("PopulateSerial")
+    puts @p.id
+    Person.intersys_call("Populate", 1000)
+    puts Person.intersys_properties.inspect
+  end
+  
+  
 end
