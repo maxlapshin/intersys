@@ -298,11 +298,14 @@ module Intersys
       intersys_call("%Save")
     end
     
+    # Returns id of current object
     def id
       intersys_call("%Id").to_i
     end
   end
   
+  # Class representing one query
+  # You shouldn't create it yourself
   class Query
     attr_reader :database
     
@@ -312,11 +315,14 @@ module Intersys
     end
   end
   
+  # Class representing Cache database connection
   class Database
     def create_query(query)
       Query.new(self, query)
     end
     
+    # This method creates SQL query, runs it, restores data
+    # and closes query
     def query(query)
       q = create_query(query).execute
       data = []
@@ -331,14 +337,27 @@ module Intersys
     end
   end
   
+  # Module reflection keeps classes required to get information
+  # about methods and properties of Cache classes
   module Reflection
+    
+    # This class is basic reflection class
+    # If has class method Open(class_name), that creates instance of
+    # this class, representing its internals
+    # 
+    # Usually creates via Intersys::Object.reflector
+    #
+    # Then it is possible to call such methods as _methods, properties
+    # to get access to methods and properties of Cache class
     class ClassDefinition < Intersys::Object
       class_name "%Dictionary.ClassDefinition"
       
+      # After all changes to class definition required to call save
       def save
         intersys_call("%Save")
       end
       
+      # short alias to intersys_get("Methods")
       def _methods
         intersys_get("Methods")
       end
@@ -352,6 +371,8 @@ module Intersys
       class_name "%Dictionary.MethodDefinition"
     end
     
+    # This is a proxy object to Cache RelationshipObject, which is just like Rails Association object
+    #
     class RelationshipObject < Intersys::Object
       class_name "%Library.RelationshipObject"
       
