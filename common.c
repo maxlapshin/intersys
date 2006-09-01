@@ -22,10 +22,10 @@ VALUE string_from_wchar(VALUE self) {
 
 int run(int err, char *file, int line) {
 	if (err != 0) {
-		VALUE handled = rb_funcall(mCache, rb_intern("handle_error"), 4, 
+		VALUE handled = rb_funcall(mIntersys, rb_intern("handle_error"), 4, 
 			INT2FIX(err), rb_str_new2(cbind_get_last_err_msg()), rb_str_new2(file), INT2FIX(line));
 		if(handled == Qnil) {
-			rb_raise(rb_eStandardError, "Cache error %d: %s in file %s: %d", err, cbind_get_last_err_msg(), file, line);
+			rb_raise(rb_eStandardError, "Intersystems Cache error %d: %s in file %s: %d", err, cbind_get_last_err_msg(), file, line);
 		}
 	}
 	return err;

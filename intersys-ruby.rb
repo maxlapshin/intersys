@@ -3,20 +3,20 @@ require 'dl/import'
 
 module Intersys
   extend DL::Importable
-  dlload("/Applications/intersys/bin/libcbind.dylib")
-  class intersysException < StandardError
+  dlload("/Applications/Cache/bin/libcbind.dylib")
+  class IntersysException < StandardError
   end
   
-  class ObjectNotFound < intersysException
+  class ObjectNotFound < IntersysException
   end
   
-  class MarshallError < intersysException
+  class MarshallError < IntersysException
   end
 
-  class UnMarshallError < intersysException
+  class UnMarshallError < IntersysException
   end
   
-  class ConnectionError < intersysException
+  class ConnectionError < IntersysException
   end
   
   def self.handle_error(error_code, message, file, line)
@@ -84,50 +84,62 @@ module Intersys
   
 
   class Object
-protected
-    @@class_names = {}
-    def self.class_names
-      @@class_names
+
+    class << self
+      def class_names
+        Intersys::Object.instance_variable_set("@class_names", {}) unless Intersys::Object.instance_variable_get("@class_names")
+        Intersys::Object.instance_variable_get("@class_names")
+      end
+
+      def prefix=(name)
+        @prefix = name
+        @class_name = @prefix + "." + (@class_name ? @class_name.split(".").last : self.to_s)
+        register_name!
+      end
+    
+      def prefix(name = nil)
+        self.prefix = name if name
+        @prefix ||= "User"
+      end
+
+      def class_name=(name)
+        if name.index(".")
+          self.prefix = name.split(".").first
+          @class_name = name
+        else
+          @class_name = self.prefix + "." + name
+        end
+        register_name!
+      end
+
+      def class_name(name = nil)
+        self.class_name = name if name
+        self.class_name = (prefix + "." + to_s) unless @class_name
+        @class_name 
+      end
+
+      def database(db = nil)
+        Intersys::Object.instance_variable_set("@database", db) if db
+        Intersys::Object.instance_variable_set("@database", Intersys::Database.new(:user => "_SYSTEM", :password => "SYS", :namespace => "User"))  unless 
+          Intersys::Object.instance_variable_get("@database")
+        Intersys::Object.instance_variable_get("@database")
+      end
+            
+      def register_name!
+        if i = class_names.index(self)
+          class_names.delete(i)
+        end
+        class_names[class_name] = self
+        class_name
+      end
     end
     
-    def self.set_class_name(name)
-      if name.index(".")
-        prefix name.split(".").first
-        @class_name = name
-      else
-        @class_name = prefix + "." + name
-      end
-      @class_name = @class_name.to_wchar
+    
+    
+    def self.inherited(klass)
+      class_names[klass.class_name] = klass
     end
     
-    def self.calculate_class_name
-    end
-      
-    def self.get_class_name
-      @class_name ? @class_name.from_wchar : nil
-    end
-
-public
-    def self.prefix(prefix_name = nil)
-      if prefix_name
-        @prefix = prefix_name.to_wchar
-      end
-      @prefix.from_wchar
-    end
-
-    
-    def self.class_name(name = nil)
-      if name
-        Cache::Object.class_names[name] = self
-        set_class_name(name)
-      end
-      get_class_name
-    end
-
-    def self.database(db = nil)
-      @@database = db if db
-      @@database
-    end
     
 
     
@@ -155,9 +167,9 @@ public
       Method.new(database, class_name, name.to_s.to_wchar)
     end
     
-    def self.method_missing(method_name, *args)
-      method(method_name).call(nil, *args)
-    end
+    #def self.method_missing(method_name, *args)
+    #  method(method_name).call(nil, *args)
+    #end
     
     
     def intersys_methods

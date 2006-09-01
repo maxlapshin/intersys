@@ -57,7 +57,7 @@ enum {
 };
 
 
-extern VALUE mCache, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound, cStatus;
+extern VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound, cStatus;
 extern VALUE cTime, cMarshallError, cUnMarshallError;
 
 

@@ -38,10 +38,9 @@ VALUE intersys_definition_initialize(VALUE self, VALUE r_database, VALUE class_n
 	
 	definition->database = database->database;
 	definition->in_name = WCHARSTR(name);
-	definition->class_name = class_name;
-	rb_iv_set(self, "@class_name", class_name);
+	definition->class_name = TOWCHAR(class_name);
 	
-	RUN(cbind_alloc_class_def(database->database, WCHARSTR(class_name), &definition->cl_def));
+	RUN(cbind_alloc_class_def(database->database, CLASS_NAME(definition), &definition->cl_def));
 	return self;
 }
 
@@ -69,7 +68,6 @@ VALUE intersys_definition_in_name(VALUE self) {
 	Data_Get_Struct(self, struct rbDefinition, definition);
 	return FROMWCSTR(definition->in_name);
 }
-
 
 VALUE intersys_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
 	struct rbDefinition* property;

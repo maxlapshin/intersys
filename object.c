@@ -27,7 +27,7 @@ VALUE intersys_object_initialize(VALUE self) {
 	Data_Get_Struct(self, struct rbObject, object);
 	Data_Get_Struct(database, struct rbDatabase, base);
 	object->database = base->database;
-	object->class_name = rb_funcall(klass, rb_intern("class_name"), 0);
+	object->class_name = TOWCHAR(rb_funcall(klass, rb_intern("class_name"), 0));
 	return self;
 }
 

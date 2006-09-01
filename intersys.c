@@ -4,7 +4,7 @@ VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cA
 VALUE cTime, cMarshallError, cUnMarshallError;
 
 
-void Init_cache() {
+void Init_intersys() {
 
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
 	rb_define_method(rb_cString, "from_wchar", string_from_wchar, 0);

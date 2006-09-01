@@ -2,22 +2,15 @@
 
 require 'intersys-ruby'
 
-exit
 
-class Article < Cache::Object
-  database Cache::Database.new(:user => "Admin", :password => "123", :namespace => "User")
-  class_name "User.Article"
+class Article < Intersys::Object
+end
+
+class Person < Intersys::Object
 end
 
 if nil
-class Person < Cache::Object
-  database Cache::Database.new(:user => "Admin", :password => "123", :namespace => "User")
-  class_name "User.Person"
-end
-end
-
-if nil
-  @db = Cache::Database.new(:user => "_SYSTEM", :password => "SYS", :namespace => "User")
+  @db = Intersys::Database.new(:user => "_SYSTEM", :password => "SYS", :namespace => "User")
 
 
   @data = @db.query("insert into articles (name) values ('test name')")
@@ -36,8 +29,7 @@ if nil
   puts Article.new.cache_get("name")
 end
 
-
-if true
+if nil
   @a = Article.open(21)
   puts @a.name
   @a.name = "Anni Fyo"
@@ -47,5 +39,5 @@ if true
   puts @a.id
 end
 if true
-  puts Cache::Object.class_names.inspect
+  puts Intersys::Object.class_names.inspect
 end
