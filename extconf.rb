@@ -16,5 +16,5 @@ alias :old_cpp_include :cpp_include
 
 find_header "c_api.h", "/Applications/Cache/dev/cpp/include/", "/Developer/Examples/Cache/cpp/include/"
 $CFLAGS << " -I/Applications/Cache/dev/cpp/include/ -I/Developer/Examples/Cache/cpp/include/ -Wall" 
-create_makefile 'intersys'
+create_makefile 'intersys_cache'
 

@@ -8,7 +8,7 @@ static VALUE my_debug(VALUE self) {
 	return Qnil;
 }
 
-void Init_intersys() {
+void Init_intersys_cache() {
 	rb_define_method(rb_mKernel, "my_debug", my_debug, 0);
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
 	rb_define_method(rb_cString, "from_wchar", string_from_wchar, 0);

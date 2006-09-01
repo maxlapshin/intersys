@@ -83,7 +83,7 @@ module Intersys
     end
   end
 
-  require 'intersys'
+  require 'intersys_cache'
   
 
   class Object

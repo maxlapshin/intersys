@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'intersys-ruby'
+require 'intersys'
 #my_debug
 
 class Article < Intersys::Object
