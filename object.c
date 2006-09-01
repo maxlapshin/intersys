@@ -88,7 +88,7 @@ VALUE intersys_object_get(VALUE self, VALUE r_property) {
 
 	rb_funcall(r_property, rb_intern("set_as_result!"), 0);
     RUN(cbind_get_prop(object->database, object->oref, property->in_name));
-	return rb_funcall(self, rb_intern("intern_result"), 2, INT2FIX(0), r_property);
+	return rb_funcall(r_property, rb_intern("extract_retval!"), 0);
 }
 
 VALUE intersys_object_set(VALUE self, VALUE r_property, VALUE value) {

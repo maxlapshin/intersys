@@ -66,7 +66,9 @@ extern VALUE cTime, cMarshallError, cUnMarshallError;
 VALUE string_to_wchar(VALUE self);
 int run(int error, char* file, int line);
 VALUE string_from_wchar(VALUE self);
-VALUE wcstr_new(const wchar_t *w_str);
+VALUE rb_wcstr_new(const wchar_t *w_str, const char_size_t len);
+VALUE rb_wcstr_new2(const wchar_t *w_str);
+VALUE wcstr_new(const wchar_t *w_str, const char_size_t len);
 
 /******* Database functions *******/
 
@@ -142,7 +144,7 @@ VALUE intersys_argument_set(VALUE self, VALUE obj);
 #define FROMWCHAR(x) (rb_funcall((x), rb_intern("from_wchar"), 0))
 #define TOWCHAR(x) (rb_funcall((x), rb_intern("to_wchar"), 0))
 
-#define FROMWCSTR(x) (FROMWCHAR(wcstr_new(x))) // From wchar_t* -> VALUE with utf8
+#define FROMWCSTR(x) (FROMWCHAR(rb_wcstr_new2(x))) // From wchar_t* -> VALUE with utf8
 #define PRINTABLE(x) STR(FROMWCHAR(x))         // from VALUE with ucs -> char * with utf8
 #define CLASS_NAME(x) WCHARSTR((x)->class_name)  // from object description -> wchar_t*
 

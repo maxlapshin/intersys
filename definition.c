@@ -40,7 +40,7 @@ VALUE intersys_definition_initialize(VALUE self, VALUE r_database, VALUE class_n
 	definition->in_name = WCHARSTR(name);
 	definition->class_name = TOWCHAR(class_name);
 	
-	RUN(cbind_alloc_class_def(database->database, CLASS_NAME(definition), &definition->cl_def));
+	RUN(cbind_alloc_class_def(definition->database, CLASS_NAME(definition), &definition->cl_def));
 	return self;
 }
 
@@ -219,8 +219,26 @@ VALUE intersys_method_extract_retval(VALUE self) {
 		}
 		
 		case CBIND_OBJ_ID: {
-			rb_raise(cUnMarshallError, "Cannot unmarshall type %d now", method->cpp_type);
-			return Qnil;
+            int oref = 0;
+			char_size_t len = 80;
+			bool_t is_null = 1;
+			VALUE result = Qnil, klass;
+			VALUE class_name_w, class_name;
+            const wchar_t *cl_name = 0;
+			struct rbObject* object;
+            RUN(cbind_get_arg_as_obj(method->database, method->num_args, &oref, &cl_name, &len, &is_null));
+			if(is_null) {
+				printf("Loaded NULL object\n");
+				return Qnil;
+			}
+			class_name_w = rb_wcstr_new(cl_name, len);
+			class_name = FROMWCHAR(class_name_w);
+			printf("Unmarshalling object %s#%d \n", STR(class_name), oref);
+			klass = rb_funcall(cObject, rb_intern("lookup"), 1, class_name);
+			result = rb_funcall(klass, rb_intern("new"), 0);
+			Data_Get_Struct(result, struct rbObject, object);
+			object->oref = oref;
+			return result;
 		}
 		
         case CBIND_TIME_ID:
@@ -267,7 +285,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 		case CBIND_BINARY_ID: {
             byte_size_t size;
             char *buf;
-			VALUE result = rb_str_new2(0);
+			VALUE result = rb_str_new(0, 0);
 
             RUN(cbind_get_arg_as_bin(method->database, method->num_args, NULL, 0, &size, &is_null));
 			buf = ALLOC_N(char, size + 1);
@@ -295,15 +313,20 @@ VALUE intersys_method_extract_retval(VALUE self) {
             byte_size_t size;
             char *buf;
 			VALUE result = rb_str_new(0, 0);
+			VALUE res;
 
             RUN(cbind_get_arg_as_str(method->database, method->num_args, NULL, 0, CPP_UNICODE, &size, &is_null));
-			buf = ALLOC_N(char, size + 1);
+			//It is important to add wchar_t to end, because for wcslen we need more than 1 terminating zero.
+			//I don't know exactly, how works wcslen, but I add 4 (sizeof wchar_t) terminating zeroes
+			buf = ALLOC_N(char, size + sizeof(wchar_t));
+			bzero(buf, size + sizeof(wchar_t));
             RUN(cbind_get_arg_as_str(method->database, method->num_args, buf, size, CPP_UNICODE, &size, &is_null));
 			
 			RSTRING(result)->ptr = buf;
 			RSTRING(result)->len = size;
 		    RSTRING(result)->aux.capa = size;
-			return rb_funcall(result, rb_intern("from_wchar"), 0);
+			res = rb_funcall(result, rb_intern("from_wchar"), 0);
+			return res;
 		}
 
         case CBIND_BOOL_ID:
@@ -415,15 +438,11 @@ VALUE intersys_argument_marshall_dlist_elem(VALUE self, VALUE elem) {
 
 
 VALUE intersys_argument_set(VALUE self, VALUE obj) {
-	struct rbObject* param;
 	struct rbDefinition* property;
-	int by_ref = 0;
-
-
 	Data_Get_Struct(self, struct rbDefinition, property);
 	
 	if(obj == Qnil) {
-        RUN(cbind_set_next_arg_as_null(property->database, property->cpp_type, by_ref));
+        RUN(cbind_set_next_arg_as_null(property->database, property->cpp_type, property->is_by_ref));
         return obj;
 	}
     switch (property->cpp_type) {
@@ -431,20 +450,21 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
             break;
         case CBIND_OBJ_ID:
         {
+			struct rbObject* param;
 			Data_Get_Struct(obj, struct rbObject, param);
-            RUN(cbind_set_next_arg_as_obj(property->database, param->oref, WCHARSTR(param->class_name), by_ref));
+            RUN(cbind_set_next_arg_as_obj(property->database, param->oref, WCHARSTR(param->class_name), property->is_by_ref));
             break;
         }
         case CBIND_INT_ID:
         {
 			VALUE i = rb_funcall(obj, rb_intern("to_i"), 0);
-			RUN(cbind_set_next_arg_as_int(property->database, NUM2INT(i), by_ref));
+			RUN(cbind_set_next_arg_as_int(property->database, NUM2INT(i), property->is_by_ref));
             break;
         }
         case CBIND_DOUBLE_ID:
 		{
 			VALUE f = rb_funcall(obj, rb_intern("to_f"), 0);
-            RUN(cbind_set_next_arg_as_double(property->database, RFLOAT(f)->value, by_ref));
+            RUN(cbind_set_next_arg_as_double(property->database, RFLOAT(f)->value, property->is_by_ref));
             break;
 		}
         case CBIND_BINARY_ID:
@@ -458,13 +478,13 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
 				rb_raise(rb_eStandardError, "Cannot marshall object");
 				break;
 			}
-            RUN(cbind_set_next_arg_as_bin(property->database, STR(res), LEN(res), by_ref));
+            RUN(cbind_set_next_arg_as_bin(property->database, STR(res), LEN(res), property->is_by_ref));
             break;
         }
         case CBIND_STRING_ID:
         {
 			VALUE res = (rb_funcall(obj, rb_intern("to_s"), 0));
-            RUN(cbind_set_next_arg_as_str(property->database, STR(res), LEN(res), MULTIBYTE, by_ref));
+            RUN(cbind_set_next_arg_as_str(property->database, STR(res), LEN(res), MULTIBYTE, property->is_by_ref));
             break;
         }
         case CBIND_STATUS_ID:
@@ -477,7 +497,7 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
 			int hour = NUM2INT(CALL(obj, "hour"));
 			int minute = NUM2INT(CALL(obj, "min"));
 			int second = NUM2INT(CALL(obj, "sec"));
-			RUN(cbind_set_next_arg_as_time(property->database, hour, minute, second, by_ref));
+			RUN(cbind_set_next_arg_as_time(property->database, hour, minute, second, property->is_by_ref));
             break;
         }
         case CBIND_DATE_ID:
@@ -485,7 +505,7 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
 			int year = NUM2INT(CALL(obj, "year"));
 			int month = NUM2INT(CALL(obj, "month"));
 			int day = NUM2INT(CALL(obj, "day"));
-			RUN(cbind_set_next_arg_as_date(property->database, year, month, day, by_ref));
+			RUN(cbind_set_next_arg_as_date(property->database, year, month, day, property->is_by_ref));
             break;
         }
         case CBIND_TIMESTAMP_ID:
@@ -498,13 +518,13 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
 			int second = NUM2INT(CALL(obj, "sec"));
 			int fraction = 0;
 		  	RUN(cbind_set_next_arg_as_timestamp(property->database, 
-					year, month, day, hour, minute, second, fraction, by_ref));
+					year, month, day, hour, minute, second, fraction, property->is_by_ref));
             break;
         }
         case CBIND_BOOL_ID:
         {
 			bool_t res = RTEST(obj);
-            RUN(cbind_set_next_arg_as_bool(property->database, res, by_ref));
+            RUN(cbind_set_next_arg_as_bool(property->database, res, property->is_by_ref));
             break;
         }
         case CBIND_DLIST_ID:
@@ -514,7 +534,7 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
 			property->current_dlist_size = sizeof(buf);
 			property->current_dlist = buf;
 			rb_funcall(self, rb_intern("marshall_dlist"), 1, obj);
-            RUN(cbind_set_next_arg_as_dlist(property->database, buf, sizeof(buf) - property->current_dlist_size, by_ref));
+            RUN(cbind_set_next_arg_as_dlist(property->database, buf, sizeof(buf) - property->current_dlist_size, property->is_by_ref));
 			property->current_dlist_size = 0;
 			property->current_dlist = 0;
             break;

@@ -59,6 +59,7 @@ void Init_intersys() {
 	cProperty = rb_const_get(mIntersys, rb_intern("Property"));
 	rb_define_method(cProperty, "initialize", intersys_property_initialize, 3);
 	rb_define_method(cProperty, "set_as_result!", intersys_property_set_result, 0);
+	rb_define_method(cProperty, "extract_retval!", intersys_method_extract_retval, 0);
 
 	cMethod = rb_const_get(mIntersys, rb_intern("Method"));
 	rb_define_method(cMethod, "method_initialize", intersys_method_initialize, 0);
@@ -67,7 +68,7 @@ void Init_intersys() {
 	rb_define_method(cMethod, "num_args", intersys_method_num_args, 0);
 	rb_define_method(cMethod, "prepare_call!", intersys_method_prepare_call, 0);
 	rb_define_method(cMethod, "intern_call!", intersys_method_call, 0);
-	rb_define_method(cMethod, "extract_retval!", intersys_method_extract_retval, 1);
+	rb_define_method(cMethod, "extract_retval!", intersys_method_extract_retval, 0);
 	
 	cArgument = rb_const_get(mIntersys, rb_intern("Argument"));
 	rb_define_method(cArgument, "initialize", intersys_argument_initialize, 4);

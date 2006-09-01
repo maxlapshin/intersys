@@ -39,5 +39,16 @@ if nil
   puts @a.id
 end
 if true
-  puts Intersys::Object.class_names.inspect
+  
+  
+  Article.transaction do
+    @cdef = Intersys::Reflection::ClassDefinition.open("%Dictionary.ClassDefinition")
+    #puts @cdef.name
+    #puts @cdef.intersys_get("ClassType")
+    #puts @cdef.intersys_get("Super")
+    @prop = @cdef.class.property("Properties")
+    @props = @cdef.intersys_get("Properties")
+    puts @props.intersys_call("%Count")
+    #@m @cdef.intersys_get("Methods")
+  end
 end

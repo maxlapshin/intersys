@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 require 'dl/import'
+require 'rubygems'
+require_gem 'activesupport'
+require 'active_support'
 
 module Intersys
   extend DL::Importable
@@ -44,7 +47,7 @@ module Intersys
   public
     
     def initialize(database, class_name, name)
-      super(database, class_name, "%"+name.to_s.capitalize)
+      super(database, class_name, name.to_s)
       method_initialize
       @args = []
       num_args.times do
@@ -90,6 +93,10 @@ module Intersys
         Intersys::Object.instance_variable_set("@class_names", {}) unless Intersys::Object.instance_variable_get("@class_names")
         Intersys::Object.instance_variable_get("@class_names")
       end
+      
+      def lookup(class_name)
+        class_names[class_name] || raise(UnMarshallError, "Couldn't find registered class with Cache name '#{class_name}'")
+      end
 
       def prefix=(name)
         @prefix = name
@@ -131,6 +138,18 @@ module Intersys
         end
         class_names[class_name] = self
         class_name
+      end
+      
+      def transaction
+        return unless block_given?
+        database.start
+        begin
+          yield
+          database.commit
+        rescue StandardError => e
+          database.rollback
+          raise e
+        end
       end
     end
     
@@ -197,14 +216,15 @@ module Intersys
     end
     
     def method_missing(method, *args)
-      if match_data = method.to_s.match(/(\w+)=/)
+      method_name = method.to_s.camelize
+      if match_data = method_name.match(/(\w+)=/)
         return intersys_set(match_data.captures.first, args.first)
       end
       begin
         return intersys_get(method)
       rescue
         begin
-          return intersys_call(method, args)
+          return intersys_call(method, *args)
         rescue
         end
       end
@@ -227,8 +247,6 @@ module Intersys
       @database = database
       native_initialize(database, query.to_wchar)
     end
-    
-    
   end
   
   class Database
@@ -238,6 +256,20 @@ module Intersys
     
     def query(query)
       create_query(query).execute.fetch
+    end
+  end
+  
+  module Reflection
+    class ClassDefinition < Intersys::Object
+      class_name "%Dictionary.ClassDefinition"
+    end
+
+    class PropertyDefinition < Intersys::Object
+      class_name "%Dictionary.PropertyDefinition"
+    end
+    
+    class RelationshipObject < Intersys::Object
+      class_name "%Library.RelationshipObject"
     end
   end
 end
