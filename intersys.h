@@ -88,7 +88,7 @@ VALUE intersys_base_level(VALUE self);
 VALUE intersys_query_s_allocate(VALUE klass);
 VALUE intersys_query_initialize(VALUE self, VALUE database, VALUE sql_query);
 VALUE intersys_query_execute(VALUE self);
-VALUE intersys_query_column_name(h_query query, int i);
+VALUE intersys_query_column_name(VALUE self, VALUE index);
 VALUE intersys_query_get_data(VALUE self, VALUE index);
 VALUE intersys_query_fetch(VALUE self);
 VALUE intersys_query_close(VALUE self);

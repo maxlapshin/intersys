@@ -39,6 +39,7 @@ void Init_intersys() {
 	rb_define_method(cQuery, "native_initialize", intersys_query_initialize, 2);
 	rb_define_method(cQuery, "execute", intersys_query_execute, 0);
 	rb_define_method(cQuery, "fetch", intersys_query_fetch, 0);
+	rb_define_method(cQuery, "column_name", intersys_query_column_name, 1);
 	rb_define_method(cQuery, "get_data", intersys_query_get_data, 1);
 	rb_define_method(cQuery, "close", intersys_query_close, 0);
 

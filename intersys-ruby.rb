@@ -260,7 +260,16 @@ module Intersys
     end
     
     def query(query)
-      create_query(query).execute.fetch
+      q = create_query(query).execute
+      data = []
+      while (row = q.fetch) && row.size > 0
+        data << row
+      end
+      q.close
+      1.upto(data.first.size) do |i|
+        puts q.column_name(i)
+      end
+      data
     end
   end
   

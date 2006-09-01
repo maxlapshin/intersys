@@ -9,16 +9,13 @@ end
 class Person < Intersys::Object
 end
 
-if nil
-  @db = Intersys::Database.new(:user => "_SYSTEM", :password => "SYS", :namespace => "User")
+if false
+  @db = Intersys::Database.new({})
 
-
-  @data = @db.query("insert into articles (name) values ('test name')")
+  @data = @db.query("select * from sample.person")
   puts "Result: #{@data.inspect}"
-
-
-  @data = @db.query("select name from articles where id = 23")
-  puts "Result: #{@data.inspect}"
+  puts @data.size
+  #@db.query("insert into sample.person (name,SSN) values ('test','335-66-7438')")
 end
 
 if nil
@@ -95,5 +92,8 @@ if true
     puts Person.intersys_properties.inspect
   end
   
-  
+  if true
+    @p = Person.open(1)
+    puts @p
+  end
 end
