@@ -4,10 +4,10 @@ require 'rake/testtask'
 require 'rake/rdoctask'
 require 'rake/packagetask'
 require 'rake/contrib/rubyforgepublisher'
-require 'lib/intersys'
+#require 'lib/intersys'
 
 PKG_NAME = "intersys"
-PKG_VERSION = "0.0.1"
+PKG_VERSION = "0.0.2"
 PKG_AUTHOR = "Max Lapshin"
 PKG_EMAIL = "max@maxidoors.ru"
 PKG_HOMEPAGE = "http://maxidoors.ru/"
@@ -29,19 +29,19 @@ spec = Gem::Specification.new do |s|
   s.summary = PKG_SUMMARY
   s.require_path = "lib"
   s.rubyforge_project = PKG_NAME
-  s.files = FileList["{bin,test,lib}/**/*"].exclude("rdoc").exclude(".svn").exclude(".DS_Store").to_a
+  s.files = FileList["{bin,test,lib}/**/*"].exclude("rdoc").exclude(".svn").exclude(".DS_Store").exclude("*.o").to_a
 	s.files << ["Rakefile", "README", "init.rb"]
   s.test_files = FileList["{test}/**/*test.rb"].to_a
   s.autorequire = "intersys"
   s.has_rdoc = true
   s.extra_rdoc_files = ["README"]
 	s.rdoc_options = PKG_RDOC_OPTS
-  s.add_dependency("active_support", ">= 1.0")
+  s.add_dependency("activesupport", ">= 1.0")
   s.extensions << 'lib/extconf.rb'
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|
-pkg.need_tar = true
+  pkg.need_tar = true
 end
 
 task :default => [ :test ]
@@ -75,11 +75,11 @@ Rake::RDocTask.new("doc") do |rdoc|
   rdoc.rdoc_files.include FileList['lib/*.rb', 'lib/**/*.rb']
 end
 
-Rake::GemPackageTask.new(spec) do |p|
-  p.gem_spec = spec
-  p.need_tar = true
-  p.need_zip = true
-end
+#Rake::GemPackageTask.new(spec) do |p|
+#  p.gem_spec = spec
+#  p.need_tar = true
+#  p.need_zip = true
+#end
 
 desc "Remove packaging products (doc and pkg) - they are not source-managed"
 task :clobber do
