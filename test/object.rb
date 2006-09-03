@@ -14,4 +14,9 @@ class QueryTest < Test::Unit::TestCase
     @p = Article.open(21)
     assert_equal @name, @p.name
   end
+
+   def test_populate
+     assert Person.intersys_call("Populate", 1000)
+
+   end
 end

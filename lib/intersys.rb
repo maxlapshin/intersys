@@ -313,6 +313,24 @@ module Intersys
       @database = database
       native_initialize(database, query.to_wchar)
     end
+    
+    def each
+      while (row = self.fetch) && row.size > 0
+        puts "Loaded row #{row}"
+        yield row
+      end
+    end
+    
+    def to_a
+      data = []
+      self.each {|row| data << row}
+      data
+    end
+    
+    def fill(data)
+      self.each {|row| data << row}
+      self
+    end
   end
   
   # Class representing Cache database connection
@@ -324,12 +342,8 @@ module Intersys
     # This method creates SQL query, runs it, restores data
     # and closes query
     def query(query)
-      q = create_query(query).execute
       data = []
-      while (row = q.fetch) && row.size > 0
-        data << row
-      end
-      q.close
+      q = create_query(query).execute.fill(data).close
       1.upto(data.first.size) do |i|
         puts q.column_name(i)
       end

@@ -15,6 +15,8 @@ struct rbDatabase {
 struct rbQuery {
 	h_query query;
 	bool_t empty;
+	bool_t closed;
+	bool_t executed;
 };
 
 struct rbObject {

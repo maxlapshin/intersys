@@ -57,9 +57,4 @@ class ReflectionTest < Test::Unit::TestCase
     assert_equal 6, @cdef.properties.size
     #@cdef.save
   end
-  
-  def test_populate
-    assert Person.intersys_call("Populate", 1000)
-    
-  end
 end

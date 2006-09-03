@@ -3,13 +3,7 @@
 VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound, cStatus;
 VALUE cTime, cMarshallError, cUnMarshallError;
 
-static VALUE my_debug(VALUE self) {
-	printf("Hi!\n");
-	return Qnil;
-}
-
 void Init_intersys_cache() {
-	rb_define_method(rb_mKernel, "my_debug", my_debug, 0);
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
 	rb_define_method(rb_cString, "from_wchar", string_from_wchar, 0);
 
@@ -78,6 +72,5 @@ void Init_intersys_cache() {
 	rb_define_method(cArgument, "default", intersys_argument_default_value, 0);
 	rb_define_method(cArgument, "marshall_dlist_element", intersys_argument_marshall_dlist_elem, 1);
 	rb_define_method(cArgument, "marshall!", intersys_argument_set, 1);
-//	printf("Inited\n");
 }
 

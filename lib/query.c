@@ -3,7 +3,17 @@
 #include <sqlext.h>
 #include <sqlucode.h>
 
+static void query_close(struct rbQuery* query) {
+	printf("Trying to close query (%d,%d)\n", query->closed, query->executed);
+	if(!query->closed && query->executed) {
+		printf("Closing query\n");
+		RUN(cbind_query_close(query->query));
+		query->closed = 1;
+	}
+}
+
 void intersys_query_free(struct rbQuery* query) {
+	query_close(query);
 	RUN(cbind_free_query(query->query));
 	free(query);
 }
@@ -32,6 +42,7 @@ VALUE intersys_query_execute(VALUE self) {
 	Data_Get_Struct(self, struct rbQuery, query);
 	RUN(cbind_query_execute(query->query, &sql_code));
     RUN(cbind_query_get_num_pars(query->query, &res));
+	query->executed = 1;
 	return self;
 }
 
@@ -148,6 +159,6 @@ VALUE intersys_query_fetch(VALUE self) {
 VALUE intersys_query_close(VALUE self) {
 	struct rbQuery* query;
 	Data_Get_Struct(self, struct rbQuery, query);
-	RUN(cbind_query_close(query->query));
+	query_close(query);
 	return self;
 }

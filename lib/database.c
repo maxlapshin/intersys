@@ -1,7 +1,6 @@
 #include "intersys.h"
 
 void intersys_base_free(struct rbDatabase* base) {
-//	printf("Releasing database\n");
 	RUN(cbind_free_db(base->database));
 	RUN(cbind_free_conn(base->connection));
 	free(base);

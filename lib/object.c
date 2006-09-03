@@ -2,7 +2,6 @@
 
 
 static void intersys_object_free(struct rbObject* object) {
-//	printf("Releasing object %d\n", object->oref);
 	if (object->oref) {
 		RUN(cbind_object_release(object->database, object->oref));
 	}

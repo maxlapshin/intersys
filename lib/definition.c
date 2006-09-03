@@ -1,7 +1,6 @@
 #include "intersys.h"
 
 static void intersys_definition_free(struct rbDefinition* definition) {
-//	printf("Releasing definition (%d)\n", definition->type);
 	switch(definition->type) {
 		case D_PROPERTY: {
 			RUN(cbind_free_prop_def(definition->def));

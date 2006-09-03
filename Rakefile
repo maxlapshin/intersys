@@ -94,12 +94,21 @@ end
 
 desc "Push docs to servers"
 task :push_docs do
-  user = "#{ENV['USER']}@rubyforge.org" 
+  user = "max_lapshin" 
   project = '/var/www/gforge-projects/rutils'
   local_dir = 'doc'
   [ 
     Rake::SshDirPublisher.new( user, project, local_dir),
     #Rake::SshDirPublisher.new('julik', '~/www/code/rutils', local_dir),
-  
   ].each { |p| p.upload }
+end
+
+desc "Build binary driver"
+task :build do
+  puts `cd lib; [ -e Makefile ] || ruby extconf.rb; make`
+end
+
+desc "Rebuild binary driver"
+task :rebuild do
+  puts `cd lib; ruby extconf.rb; make clean all`
 end
