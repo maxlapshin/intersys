@@ -3,6 +3,7 @@ require 'dl/import'
 require 'rubygems'
 require_gem 'activesupport'
 require 'active_support'
+require 'enumerator'
 
 #
 # Module, keeping all classes, required to work with Cache via object and SQL interfaces
@@ -282,21 +283,21 @@ module Intersys
       if match_data = method_name.match(/(\w+)=/)
         return intersys_set(match_data.captures.first, args.first)
       end
-      begin
-        return intersys_get(method_name)
-      rescue StandardError => e
-        puts e
-        begin
-          return intersys_call(method_name, *args)
-        rescue
-        end
-      end
+      return intersys_get(method_name) if has_property?(method_name)
+      return intersys_call(method_name, *args) if has_method?(method_name)
+      return intersys_call("%"+method_name, *args) if has_method?("%"+method_name)
       super(method, *args)
     end
-    
-    def save
-      intersys_call("%Save")
+
+  protected
+    def has_property?(property)
+      self.class.reflector.properties.to_a.include?(property)
     end
+    
+    def has_method?(method)
+      self.class.reflector.methods.to_a.include?(method)
+    end
+    
     
     # Returns id of current object
     def id
@@ -316,7 +317,7 @@ module Intersys
     
     def each
       while (row = self.fetch) && row.size > 0
-        puts "Loaded row #{row}"
+        #puts "Loaded row #{row}"
         yield row
       end
     end
@@ -373,7 +374,11 @@ module Intersys
       
       # short alias to intersys_get("Methods")
       def _methods
-        intersys_get("Methods")
+        @methods ||= intersys_get("Methods")
+      end
+      
+      def properties
+        @properties ||= intersys_get("Properties")
       end
     end
 
@@ -391,15 +396,16 @@ module Intersys
       class_name "%Library.RelationshipObject"
       
       def empty?
-        intersys_call("IsEmpty")
+        @empty ||= intersys_call("IsEmpty")
       end
       
       def count
-        intersys_call("Count")
+        @count ||= intersys_call("Count")
       end
       alias :size :count
       
       def [](index)
+        return @list[index] if @loaded
         intersys_call("GetAt", index.to_s)
       end
       
@@ -409,18 +415,14 @@ module Intersys
         end
       end
       
-      def each_with_index
-        1.upto(count) do |i|
-          yield self[i], i
-        end
+      include Enumerable
+      
+      def to_a
+        load_list
       end
       
       def inspect
-        list = []
-        each do |prop|
-          list << prop.name
-        end
-        list.inspect
+        load_list.inspect
       end
       alias :to_s :inspect
       
@@ -428,6 +430,23 @@ module Intersys
         intersys_call("Insert", object)
       end
       alias :insert :<<
+      
+      def reload
+        @list = nil
+        @loaded = nil
+        @empty = nil
+        @count = nil
+      end
+      
+    protected
+      def load_list
+        @list ||= []
+        self.each do |prop|
+          @list << prop.intersys_get("Name")
+        end unless @loaded
+        @loaded = true
+        @list
+      end
     end
   end
 end
