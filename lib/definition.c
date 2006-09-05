@@ -306,16 +306,12 @@ VALUE intersys_method_extract_retval(VALUE self) {
 		
 		case CBIND_BINARY_ID: {
             byte_size_t size;
-            char *buf;
-			VALUE result = rb_str_new(0, 0);
+			VALUE result = Qnil;
 
             RUN(cbind_get_arg_as_bin(method->database, method->num_args, NULL, 0, &size, &is_null));
-			buf = ALLOC_N(char, size + 1);
-            RUN(cbind_get_arg_as_bin(method->database, method->num_args, buf, size, &size, &is_null));
-			
-			RSTRING(result)->ptr = buf;
-			RSTRING(result)->len = size;
-		    RSTRING(result)->aux.capa = size;
+			result = rb_str_buf_new((int)size);
+            RUN(cbind_get_arg_as_bin(method->database, method->num_args, STR(result), size, &size, &is_null));
+			LEN(result) = size;
 			return result;
 		}
 		case CBIND_STATUS_ID:{
@@ -333,22 +329,16 @@ VALUE intersys_method_extract_retval(VALUE self) {
 
 		case CBIND_STRING_ID: {
             byte_size_t size;
-            char *buf;
-			VALUE result = rb_str_new(0, 0);
-			VALUE res;
+			VALUE result = Qnil;
 
             RUN(cbind_get_arg_as_str(method->database, method->num_args, NULL, 0, CPP_UNICODE, &size, &is_null));
 			//It is important to add wchar_t to end, because for wcslen we need more than 1 terminating zero.
 			//I don't know exactly, how works wcslen, but I add 4 (sizeof wchar_t) terminating zeroes
-			buf = ALLOC_N(char, size + sizeof(wchar_t));
-			bzero(buf, size + sizeof(wchar_t));
-            RUN(cbind_get_arg_as_str(method->database, method->num_args, buf, size, CPP_UNICODE, &size, &is_null));
-			
-			RSTRING(result)->ptr = buf;
-			RSTRING(result)->len = size;
-		    RSTRING(result)->aux.capa = size;
-			res = rb_funcall(result, rb_intern("from_wchar"), 0);
-			return res;
+			result = rb_str_buf_new(size + sizeof(wchar_t));
+			bzero(STR(result) + size, sizeof(wchar_t));
+            RUN(cbind_get_arg_as_str(method->database, method->num_args, STR(result), size, CPP_UNICODE, &size, &is_null));
+			LEN(result) = size;
+			return rb_funcall(result, rb_intern("from_wchar"), 0);
 		}
 
         case CBIND_BOOL_ID:
@@ -363,7 +353,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 		
         case CBIND_DLIST_ID:
         {
-            char *buf;
+			VALUE buf = Qnil;
             char *p;
             byte_size_t size;
             int num_elems;
@@ -371,18 +361,18 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			VALUE list;
 
             RUN(cbind_get_arg_as_dlist(method->database, method->num_args, NULL, 0, &size, &is_null));
-            buf = ALLOC_N(char, size);
-            RUN(cbind_get_arg_as_dlist(method->database, method->num_args, buf, size, &size, &is_null));	    
+			buf = rb_str_buf_new(size);
+            RUN(cbind_get_arg_as_dlist(method->database, method->num_args, STR(buf), size, &size, &is_null));
+			LEN(buf) = size;
 
-            RUN(cbind_dlist_calc_num_elems(buf, size, &num_elems));
+            RUN(cbind_dlist_calc_num_elems(STR(buf), LEN(buf), &num_elems));
 			list = rb_ary_new2(num_elems);
-            p = buf;
+            p = STR(buf);
 			for (i=0; i < num_elems; i++) {
 	            int elem_size;
 				rb_ary_push(list, extract_next_dlist_elem(p, &elem_size));
 				p += elem_size;
 			}
-			free(buf);
             return list;
         }
 		

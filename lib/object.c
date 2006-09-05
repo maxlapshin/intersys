@@ -22,12 +22,11 @@ VALUE intersys_object_s_allocate(VALUE klass) {
 VALUE intersys_object_initialize(VALUE self) {
 	struct rbObject* object;
 	struct rbDatabase* base;
-	VALUE klass = rb_funcall(self, rb_intern("class"), 0);
-	VALUE database = rb_funcall(klass, rb_intern("database"), 0);
+	VALUE database = rb_funcall(rb_obj_class(self), rb_intern("database"), 0);
 	Data_Get_Struct(self, struct rbObject, object);
 	Data_Get_Struct(database, struct rbDatabase, base);
 	object->database = base->database;
-	object->class_name = TOWCHAR(rb_funcall(klass, rb_intern("class_name"), 0));
+	object->class_name = TOWCHAR(rb_funcall(rb_obj_class(self), rb_intern("class_name"), 0));
 	return self;
 }
 

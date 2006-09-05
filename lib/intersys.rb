@@ -9,7 +9,7 @@ require 'enumerator'
 # Module, keeping all classes, required to work with Cache via object and SQL interfaces
 module Intersys
   extend DL::Importable
-  dlload("/Applications/Cache/bin/libcbind.dylib")
+  dlload("libcbind.dylib")
   
   # Basic exception, thrown in intersys driver
   class IntersysException < StandardError

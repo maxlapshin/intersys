@@ -40,14 +40,10 @@ VALUE wcstr_new(const wchar_t *w_str, const char_size_t len) {
 	size = (int)(len)*sizeof(wchar_t);
 	capa = (int)(len + 1)*sizeof(wchar_t);
 	
-    result = rb_str_new(0, 0);
+    result = rb_str_buf_new(capa);
+	bzero(STR(result) + size, capa-size);
+	rb_str_buf_cat(result, (char *)w_str, size);
 
-	RSTRING(result)->len = size;
-    RSTRING(result)->aux.capa = capa;
-    RSTRING(result)->ptr = ALLOC_N(char, capa);
-	bzero(RSTRING(result)->ptr, capa);
-
-	memcpy(RSTRING(result)->ptr, (char *)w_str, size);
 	rb_str_freeze(result);
 	return result;
 }
