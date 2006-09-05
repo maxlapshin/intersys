@@ -338,7 +338,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			bzero(STR(result) + size, sizeof(wchar_t));
             RUN(cbind_get_arg_as_str(method->database, method->num_args, STR(result), size, CPP_UNICODE, &size, &is_null));
 			LEN(result) = size;
-			return rb_funcall(result, rb_intern("from_wchar"), 0);
+			return FROMWCHAR(result);
 		}
 
         case CBIND_BOOL_ID:
