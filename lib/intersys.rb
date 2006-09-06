@@ -55,29 +55,14 @@ module Intersys
   # for internal use only
   class Method < Definition
     attr_accessor :args
-  protected
-    def arg!
-      Argument.new(@database, @class_name, @name, self)
-    end
-  public
     
     def initialize(database, class_name, name, object)
       super(database, class_name, name.to_s)
       method_initialize(object)
-      @args = []
-      num_args.times do
-        @args << arg!
-      end
     end
     
     def call(*method_args)
-      prepare_call!
-      raise ArgumentError, "wrong number of arguments (#{method_args.size} for #{args.size})" if method_args.size > args.size 
-      args.each_with_index do |arg, i|
-        arg.marshall!(method_args[i])
-      end
-      intern_call!
-      extract_retval!
+      intern_call!(method_args)
     end
   end
   

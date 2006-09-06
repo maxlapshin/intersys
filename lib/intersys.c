@@ -53,24 +53,19 @@ void Init_intersys_cache() {
 
 	cProperty = rb_const_get(mIntersys, rb_intern("Property"));
 	rb_define_method(cProperty, "initialize", intersys_property_initialize, 4);
-	rb_define_method(cProperty, "extract_retval!", intersys_method_extract_retval, 0);
 	rb_define_method(cProperty, "get", intersys_property_get, 0);
 	rb_define_method(cProperty, "set", intersys_property_set, 1);
-	rb_define_method(cProperty, "marshall!", intersys_argument_set, 1);
 
 	cMethod = rb_const_get(mIntersys, rb_intern("Method"));
 	rb_define_method(cMethod, "method_initialize", intersys_method_initialize, 1);
 	rb_define_method(cMethod, "func?", intersys_method_is_func, 0);
 	rb_define_method(cMethod, "class_method?", intersys_method_is_class_method, 0);
 	rb_define_method(cMethod, "num_args", intersys_method_num_args, 0);
-	rb_define_method(cMethod, "prepare_call!", intersys_method_prepare_call, 0);
-	rb_define_method(cMethod, "intern_call!", intersys_method_call, 0);
-	rb_define_method(cMethod, "extract_retval!", intersys_method_extract_retval, 0);
+	rb_define_method(cMethod, "intern_call!", intersys_method_call, 1);
 	
 	cArgument = rb_const_get(mIntersys, rb_intern("Argument"));
 	rb_define_method(cArgument, "initialize", intersys_argument_initialize, 4);
 	rb_define_method(cArgument, "default", intersys_argument_default_value, 0);
 	rb_define_method(cArgument, "marshall_dlist_element", intersys_argument_marshall_dlist_elem, 1);
-	rb_define_method(cArgument, "marshall!", intersys_argument_set, 1);
 }
 

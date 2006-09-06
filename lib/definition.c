@@ -97,7 +97,7 @@ VALUE intersys_property_get(VALUE self) {
     RUN(cbind_reset_args(property->database));    
     RUN(cbind_set_next_arg_as_res(property->database, property->cpp_type));    
     RUN(cbind_get_prop(property->database, property->oref, property->in_name));
-	return rb_funcall(self, rb_intern("extract_retval!"), 0);
+	return intersys_method_extract_retval(self);
 }
 
 VALUE intersys_property_set(VALUE self, VALUE value) {
@@ -106,7 +106,7 @@ VALUE intersys_property_set(VALUE self, VALUE value) {
 	Data_Get_Struct(self, struct rbDefinition, property);
 
     RUN(cbind_reset_args(property->database));
-	rb_funcall(self, rb_intern("marshall!"), 1, value);
+	intersys_argument_set(self, value);
 	RUN(cbind_set_prop(property->database, property->oref, property->in_name));
 	return self;
 }
@@ -158,27 +158,6 @@ VALUE intersys_method_num_args(VALUE self) {
 	return INT2FIX(method->num_args);
 }
 
-VALUE intersys_method_prepare_call(VALUE self) {
-	struct rbDefinition* method;
-	
-	Data_Get_Struct(self, struct rbDefinition, method);
-	
-	RUN(cbind_reset_args(method->database));
-	RUN(cbind_mtd_rewind_args(method->def));
-	return self;
-}
-
-VALUE intersys_method_call(VALUE self) {
-	struct rbDefinition* method;
-	
-	Data_Get_Struct(self, struct rbDefinition, method);
-
-    if (method->cpp_type != CBIND_VOID) {    
-        RUN(cbind_set_next_arg_as_res(method->database, method->cpp_type));
-    }
-    RUN(cbind_run_method(method->database, method->oref, CLASS_NAME(method), method->in_name));
-	return self;
-}
 
 static VALUE extract_next_dlist_elem(char *dlist, int* elem_size) {
 	bool_t flag;
@@ -220,6 +199,80 @@ static VALUE extract_next_dlist_elem(char *dlist, int* elem_size) {
 
 
 
+
+
+VALUE intersys_method_call(VALUE self, VALUE args) {
+	struct rbDefinition* method;
+	int i;
+	Check_Type(args, T_ARRAY);
+	Data_Get_Struct(self, struct rbDefinition, method);
+	if(method->num_args < RARRAY(args)->len) {
+		rb_raise(rb_eArgError, "wrong number of arguments (%d for %d)", RARRAY(args)->len, method->num_args);
+	}
+	VALUE database = rb_iv_get(self, "@database");
+	VALUE class_name = rb_iv_get(self, "@class_name");
+	VALUE name = rb_iv_get(self, "@name");
+	
+	RUN(cbind_reset_args(method->database));
+	RUN(cbind_mtd_rewind_args(method->def));
+	
+	for(i = 0; i < method->num_args; i++) {
+		struct rbDefinition* argument;
+		VALUE arg = rb_funcall(cArgument, rb_intern("new"), 4, database, class_name, name, self);
+		Data_Get_Struct(arg, struct rbDefinition, argument);
+		VALUE arg_val = Qnil;
+		if(i < RARRAY(args)->len) {
+			arg_val = RARRAY(args)->ptr[i];
+		} else if(argument->is_default) {
+			arg_val = intersys_argument_default_value(arg);
+		} else {
+			rb_raise(rb_eArgError, "wrong number of arguments (%d for %d)", RARRAY(args)->len, method->num_args);
+		}
+		intersys_argument_set(arg, arg_val);
+		RUN(cbind_mtd_arg_next(method->def));
+	}
+
+    if (method->cpp_type != CBIND_VOID) {    
+        RUN(cbind_set_next_arg_as_res(method->database, method->cpp_type));
+    }
+    RUN(cbind_run_method(method->database, method->oref, CLASS_NAME(method), method->in_name));
+	return intersys_method_extract_retval(self);
+}
+
+
+VALUE intersys_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method) {
+	struct rbDefinition* argument;
+	struct rbDefinition* method;
+	VALUE args[] = {r_database, class_name, name};
+	rb_call_super(3, args);
+	
+	Data_Get_Struct(self, struct rbDefinition, argument);
+	Data_Get_Struct(r_method, struct rbDefinition, method);
+
+
+	argument->type = D_ARGUMENT;
+	RUN(cbind_alloc_arg_def(&argument->def));
+    RUN(cbind_mtd_arg_get(method->def, argument->def));
+    RUN(cbind_get_arg_cpp_type(argument->def, &argument->cpp_type));
+    RUN(cbind_get_arg_cache_type(argument->def, &argument->cache_type));
+    RUN(cbind_get_arg_name(argument->def, &argument->name));
+    RUN(cbind_get_arg_is_by_ref(argument->def, &argument->is_by_ref));
+    RUN(cbind_get_arg_is_default(argument->def, &argument->is_default));    
+    RUN(cbind_get_arg_def_val(argument->def, &argument->default_value));
+    RUN(cbind_get_arg_def_val_size(argument->def, &argument->default_value_size));
+	argument->arg_number = method->arg_counter;
+	method->arg_counter++;
+	return self;
+}
+
+VALUE intersys_argument_default_value(VALUE self) {
+	struct rbDefinition* argument;
+	Data_Get_Struct(self, struct rbDefinition, argument);
+	if(!argument->is_default) {
+		return Qnil;
+	}
+	return rb_str_new(argument->default_value, argument->default_value_size);
+}
 
 VALUE intersys_method_extract_retval(VALUE self) {
 	struct rbDefinition* method;
@@ -381,41 +434,6 @@ VALUE intersys_method_extract_retval(VALUE self) {
 }
 
 
-VALUE intersys_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method) {
-	struct rbDefinition* argument;
-	struct rbDefinition* method;
-	VALUE args[] = {r_database, class_name, name};
-	rb_call_super(3, args);
-	
-	Data_Get_Struct(self, struct rbDefinition, argument);
-	Data_Get_Struct(r_method, struct rbDefinition, method);
-
-
-	argument->type = D_ARGUMENT;
-	RUN(cbind_alloc_arg_def(&argument->def));
-    RUN(cbind_mtd_arg_get(method->def, argument->def));
-    RUN(cbind_get_arg_cpp_type(argument->def, &argument->cpp_type));
-    RUN(cbind_get_arg_cache_type(argument->def, &argument->cache_type));
-    RUN(cbind_get_arg_name(argument->def, &argument->name));
-    RUN(cbind_get_arg_is_by_ref(argument->def, &argument->is_by_ref));
-    RUN(cbind_get_arg_is_default(argument->def, &argument->is_default));    
-    RUN(cbind_get_arg_def_val(argument->def, &argument->default_value));
-    RUN(cbind_get_arg_def_val_size(argument->def, &argument->default_value_size));
-    RUN(cbind_mtd_arg_next(method->def));
-	argument->arg_number = method->arg_counter;
-	method->arg_counter++;
-	return self;
-}
-
-VALUE intersys_argument_default_value(VALUE self) {
-	struct rbDefinition* argument;
-	Data_Get_Struct(self, struct rbDefinition, argument);
-	if(!argument->is_default) {
-		return Qnil;
-	}
-	return rb_str_new(argument->default_value, argument->default_value_size);
-}
-
 VALUE intersys_argument_marshall_dlist_elem(VALUE self, VALUE elem) {
 	struct rbDefinition* argument;
 	Data_Get_Struct(self, struct rbDefinition, argument);
@@ -453,10 +471,11 @@ VALUE intersys_argument_marshall_dlist_elem(VALUE self, VALUE elem) {
 VALUE intersys_argument_set(VALUE self, VALUE obj) {
 	struct rbDefinition* property;
 	Data_Get_Struct(self, struct rbDefinition, property);
+	printf("Marshalling argument\n");
 	
 	if(obj == Qnil) {
         RUN(cbind_set_next_arg_as_null(property->database, property->cpp_type, property->is_by_ref));
-        return obj;
+        return self;
 	}
     switch (property->cpp_type) {
         case CBIND_VOID:
@@ -496,7 +515,7 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
         }
         case CBIND_STRING_ID:
         {
-			VALUE res = (rb_funcall(obj, rb_intern("to_s"), 0));
+			VALUE res = rb_funcall(obj, rb_intern("to_s"), 0);
             RUN(cbind_set_next_arg_as_str(property->database, STR(res), LEN(res), MULTIBYTE, property->is_by_ref));
             break;
         }
@@ -557,8 +576,8 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
         default:
             rb_raise(rb_eStandardError,"unknown type for argument, type = %d", 
 				property->cpp_type, CLASS_NAME(property));
-            return Qnil;
+            return self;
 	}
-	return obj;
+	return self;
 	
 }

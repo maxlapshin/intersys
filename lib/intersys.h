@@ -120,14 +120,14 @@ VALUE intersys_method_initialize(VALUE self, VALUE object);
 VALUE intersys_method_is_func(VALUE self);
 VALUE intersys_method_is_class_method(VALUE self);
 VALUE intersys_method_num_args(VALUE self);
-VALUE intersys_method_prepare_call(VALUE self);
-VALUE intersys_method_call(VALUE self);
-VALUE intersys_method_extract_retval(VALUE self);
+VALUE intersys_method_call(VALUE self, VALUE args);
 VALUE intersys_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method);
 VALUE intersys_argument_default_value(VALUE self);
 VALUE intersys_argument_marshall_dlist_elem(VALUE self, VALUE elem);
-VALUE intersys_argument_set(VALUE self, VALUE obj);
 
+// Private declarations. Not for public use
+VALUE intersys_argument_set(VALUE self, VALUE obj);
+VALUE intersys_method_extract_retval(VALUE self);
 
 
 
