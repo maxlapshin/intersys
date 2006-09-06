@@ -17,6 +17,6 @@ class QueryTest < Test::Unit::TestCase
 
    def test_populate
      assert Person.intersys_call("Populate", 1000)
-
+     assert Person.intersys_call("%DeleteExtent")
    end
 end
