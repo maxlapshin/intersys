@@ -1,4 +1,7 @@
 #include "intersys.h"
+#ifdef __CYGWIN__
+#include <windef.h>
+#endif
 #include <sql.h>
 #include <sqlext.h>
 #include <sqlucode.h>
