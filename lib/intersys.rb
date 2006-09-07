@@ -269,17 +269,17 @@ module Intersys
       end
       return intersys_get(method_name) if has_property?(method_name)
       return intersys_call(method_name, *args) if has_method?(method_name)
+      puts "Checking whether %#{method_name} is here: #{self.class.reflector._methods}"
       return intersys_call("%"+method_name, *args) if has_method?("%"+method_name)
       super(method, *args)
     end
 
-  protected
     def has_property?(property)
       self.class.reflector.properties.to_a.include?(property)
     end
     
     def has_method?(method)
-      self.class.reflector.methods.to_a.include?(method)
+      self.class.reflector._methods.to_a.include?(method)
     end
     
     

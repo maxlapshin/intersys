@@ -318,16 +318,22 @@ VALUE intersys_method_extract_retval(VALUE self) {
         {
 			int year, month,day;
 			RUN(cbind_get_arg_as_date(method->database, method->passed_args, &year, &month, &day, &is_null));
-			return Qnil;
-            break;
+			if(is_null) {
+				return Qnil;
+			}
+			return rb_funcall(rb_cTime, rb_intern("local"), 3, INT2NUM(year), INT2NUM(month), INT2NUM(day))
         }
         case CBIND_TIMESTAMP_ID:
         {
 			int year, month, day, hour, minute, second, fraction;
 		  	RUN(cbind_get_arg_as_timestamp(method->database, method->passed_args, 
 					&year, &month, &day, &hour, &minute, &second, &fraction, &is_null));
-			return Qnil;
-            break;
+			if(is_null) {
+				return Qnil;
+			}
+			//TODO: fraction also should be included
+			return rb_funcall(rb_cTime, rb_intern("local"), 6, 
+				INT2NUM(year), INT2NUM(month), INT2NUM(day), INT2NUM(hour), INT2NUM(minute), INT2NUM(second));
         }
 		
 		case CBIND_INT_ID: {
@@ -366,7 +372,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			//TODO: if code is not OK, we should throw exception. No class Status is required
             RUN(cbind_get_arg_as_status(method->database, method->passed_args, &code, NULL, 0, MULTIBYTE, &size, &is_null));
 			if(!code || is_null) {
-				return Qnil;
+				return Qtrue;
 			}
 			buf = rb_str_buf_new(size);
             RUN(cbind_get_arg_as_status(method->database, method->passed_args, &code, STR(buf), RSTRING(buf)->aux.capa, MULTIBYTE, &size, &is_null));
