@@ -61,7 +61,7 @@ void Init_intersys_cache() {
 	rb_define_method(cMethod, "func?", intersys_method_is_func, 0);
 	rb_define_method(cMethod, "class_method?", intersys_method_is_class_method, 0);
 	rb_define_method(cMethod, "num_args", intersys_method_num_args, 0);
-	rb_define_method(cMethod, "intern_call!", intersys_method_call, 1);
+	rb_define_method(cMethod, "call!", intersys_method_call, 1);
 	
 	cArgument = rb_const_get(mIntersys, rb_intern("Argument"));
 	rb_define_method(cArgument, "initialize", intersys_argument_initialize, 4);

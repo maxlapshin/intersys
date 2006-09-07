@@ -36,8 +36,9 @@ VALUE intersys_base_connect(VALUE self, VALUE options) {
 	VALUE host, port, user, password, namespace, timeout;
 
 	host = connect_get_options(options, "host", "localhost", 0);
-	//port = connect_get_options(options, "port", "1973", 0);
-	port = connect_get_options(options, "port", "1972", 0);
+	port = connect_get_options(options, "port", "1973", 0);
+	//port = connect_get_options(options, "port", "1972", 0);
+	//namespace = connect_get_options(options, "namespace", "User", 0);
 	namespace = connect_get_options(options, "namespace", "Samples", 0);
 
 	user = connect_get_options(options, "user", "_SYSTEM", 1);

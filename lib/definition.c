@@ -216,23 +216,14 @@ VALUE intersys_method_call(VALUE self, VALUE args) {
 	RUN(cbind_reset_args(method->database));
 	RUN(cbind_mtd_rewind_args(method->def));
 	
-	for(i = 0; i < method->num_args; i++) {
-		struct rbDefinition* argument;
+	for(i = 0; i < RARRAY(args)->len; i++) {
 		VALUE arg = rb_funcall(cArgument, rb_intern("new"), 4, database, class_name, name, self);
-		Data_Get_Struct(arg, struct rbDefinition, argument);
-		VALUE arg_val = Qnil;
-		if(i < RARRAY(args)->len) {
-			arg_val = RARRAY(args)->ptr[i];
-		} else if(argument->is_default) {
-			arg_val = intersys_argument_default_value(arg);
-		} else {
-			rb_raise(rb_eArgError, "wrong number of arguments (%d for %d)", RARRAY(args)->len, method->num_args);
-		}
-		intersys_argument_set(arg, arg_val);
+		intersys_argument_set(arg, RARRAY(args)->ptr[i]);
 		RUN(cbind_mtd_arg_next(method->def));
 	}
+	method->passed_args = RARRAY(args)->len;
 
-    if (method->cpp_type != CBIND_VOID) {    
+    if (method->cpp_type != CBIND_VOID) {
         RUN(cbind_set_next_arg_as_res(method->database, method->cpp_type));
     }
     RUN(cbind_run_method(method->database, method->oref, CLASS_NAME(method), method->in_name));
@@ -284,7 +275,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 	}
 
 
-    RUN(cbind_get_is_null(method->database, method->num_args, &is_null));
+    RUN(cbind_get_is_null(method->database, method->passed_args, &is_null));
 	if(is_null) {
 		return Qnil;
 	}
@@ -302,7 +293,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			VALUE class_name_w, class_name;
             const wchar_t *cl_name = 0;
 			struct rbObject* object;
-            RUN(cbind_get_arg_as_obj(method->database, method->num_args, &oref, &cl_name, &len, &is_null));
+            RUN(cbind_get_arg_as_obj(method->database, method->passed_args, &oref, &cl_name, &len, &is_null));
 			if(is_null) {
 				printf("Loaded NULL object\n");
 				return Qnil;
@@ -319,21 +310,21 @@ VALUE intersys_method_extract_retval(VALUE self) {
         case CBIND_TIME_ID:
         {
 			int hour, minute, second;
-			RUN(cbind_get_arg_as_time(method->database, method->num_args, &hour, &minute, &second, &is_null));
+			RUN(cbind_get_arg_as_time(method->database, method->passed_args, &hour, &minute, &second, &is_null));
 			return Qnil;
             break;
         }
         case CBIND_DATE_ID:
         {
 			int year, month,day;
-			RUN(cbind_get_arg_as_date(method->database, method->num_args, &year, &month, &day, &is_null));
+			RUN(cbind_get_arg_as_date(method->database, method->passed_args, &year, &month, &day, &is_null));
 			return Qnil;
             break;
         }
         case CBIND_TIMESTAMP_ID:
         {
 			int year, month, day, hour, minute, second, fraction;
-		  	RUN(cbind_get_arg_as_timestamp(method->database, method->num_args, 
+		  	RUN(cbind_get_arg_as_timestamp(method->database, method->passed_args, 
 					&year, &month, &day, &hour, &minute, &second, &fraction, &is_null));
 			return Qnil;
             break;
@@ -341,19 +332,19 @@ VALUE intersys_method_extract_retval(VALUE self) {
 		
 		case CBIND_INT_ID: {
 			int val;
-			RUN(cbind_get_arg_as_int(method->database, method->num_args, &val, &is_null));
+			RUN(cbind_get_arg_as_int(method->database, method->passed_args, &val, &is_null));
 			return INT2FIX(val);
 		}
 		
 		case CBIND_DOUBLE_ID: {
 			double val;
-            RUN(cbind_get_arg_as_double(method->database, method->num_args, &val, &is_null));
+            RUN(cbind_get_arg_as_double(method->database, method->passed_args, &val, &is_null));
 			return rb_float_new(val);
 		}
         case CBIND_CURRENCY_ID:
         {
             double val;
-            RUN(cbind_get_arg_as_cy(method->database, method->num_args, &val, &is_null));
+            RUN(cbind_get_arg_as_cy(method->database, method->passed_args, &val, &is_null));
 			return rb_float_new(val);
         }
 		
@@ -361,35 +352,39 @@ VALUE intersys_method_extract_retval(VALUE self) {
             byte_size_t size;
 			VALUE result = Qnil;
 
-            RUN(cbind_get_arg_as_bin(method->database, method->num_args, NULL, 0, &size, &is_null));
+            RUN(cbind_get_arg_as_bin(method->database, method->passed_args, NULL, 0, &size, &is_null));
 			result = rb_str_buf_new((int)size);
-            RUN(cbind_get_arg_as_bin(method->database, method->num_args, STR(result), size, &size, &is_null));
+            RUN(cbind_get_arg_as_bin(method->database, method->passed_args, STR(result), size, &size, &is_null));
 			LEN(result) = size;
 			return result;
 		}
 		case CBIND_STATUS_ID:{
             byte_size_t size;
-            char *buf;
+			VALUE buf;
 			int code;
 
-            RUN(cbind_get_arg_as_status(method->database, method->num_args, &code, NULL, 0, MULTIBYTE, &size, &is_null));
-			buf = ALLOC_N(char, size + 1);
-            RUN(cbind_get_arg_as_status(method->database, method->num_args, &code, buf, size, MULTIBYTE, &size, &is_null));
-			
-			free(buf);
-			return rb_funcall(cStatus, rb_intern("new"), 2, INT2NUM(code), FROMWCHAR(rb_str_new(buf, size)));
+			//TODO: if code is not OK, we should throw exception. No class Status is required
+            RUN(cbind_get_arg_as_status(method->database, method->passed_args, &code, NULL, 0, MULTIBYTE, &size, &is_null));
+			if(!code || is_null) {
+				return Qnil;
+			}
+			buf = rb_str_buf_new(size);
+            RUN(cbind_get_arg_as_status(method->database, method->passed_args, &code, STR(buf), RSTRING(buf)->aux.capa, MULTIBYTE, &size, &is_null));
+			STR(buf)[size] = '\0';
+			rb_exc_raise(rb_funcall(cStatus, rb_intern("new"), 2, INT2FIX(code), buf));
+			return Qnil;
 		}
 
 		case CBIND_STRING_ID: {
             byte_size_t size;
 			VALUE result = Qnil;
 
-            RUN(cbind_get_arg_as_str(method->database, method->num_args, NULL, 0, CPP_UNICODE, &size, &is_null));
+            RUN(cbind_get_arg_as_str(method->database, method->passed_args, NULL, 0, CPP_UNICODE, &size, &is_null));
 			//It is important to add wchar_t to end, because for wcslen we need more than 1 terminating zero.
 			//I don't know exactly, how works wcslen, but I add 4 (sizeof wchar_t) terminating zeroes
 			result = rb_str_buf_new(size + sizeof(wchar_t));
 			bzero(STR(result) + size, sizeof(wchar_t));
-            RUN(cbind_get_arg_as_str(method->database, method->num_args, STR(result), size, CPP_UNICODE, &size, &is_null));
+            RUN(cbind_get_arg_as_str(method->database, method->passed_args, STR(result), size, CPP_UNICODE, &size, &is_null));
 			LEN(result) = size;
 			return FROMWCHAR(result);
 		}
@@ -397,7 +392,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
         case CBIND_BOOL_ID:
         {
             bool_t val;
-            RUN(cbind_get_arg_as_bool(method->database, method->num_args, &val, &is_null));
+            RUN(cbind_get_arg_as_bool(method->database, method->passed_args, &val, &is_null));
 			if(val) {
 				return Qtrue;
 			}
@@ -413,9 +408,9 @@ VALUE intersys_method_extract_retval(VALUE self) {
             int i;
 			VALUE list;
 
-            RUN(cbind_get_arg_as_dlist(method->database, method->num_args, NULL, 0, &size, &is_null));
+            RUN(cbind_get_arg_as_dlist(method->database, method->passed_args, NULL, 0, &size, &is_null));
 			buf = rb_str_buf_new(size);
-            RUN(cbind_get_arg_as_dlist(method->database, method->num_args, STR(buf), size, &size, &is_null));
+            RUN(cbind_get_arg_as_dlist(method->database, method->passed_args, STR(buf), size, &size, &is_null));
 			LEN(buf) = size;
 
             RUN(cbind_dlist_calc_num_elems(STR(buf), LEN(buf), &num_elems));
@@ -471,7 +466,6 @@ VALUE intersys_argument_marshall_dlist_elem(VALUE self, VALUE elem) {
 VALUE intersys_argument_set(VALUE self, VALUE obj) {
 	struct rbDefinition* property;
 	Data_Get_Struct(self, struct rbDefinition, property);
-	printf("Marshalling argument\n");
 	
 	if(obj == Qnil) {
         RUN(cbind_set_next_arg_as_null(property->database, property->cpp_type, property->is_by_ref));

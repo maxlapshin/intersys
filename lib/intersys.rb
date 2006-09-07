@@ -30,6 +30,17 @@ module Intersys
   # Error establishing connection with database
   class ConnectionError < IntersysException
   end
+
+  # Method can return Cache %Status. It is marshalled to this class
+  class Status < IntersysException
+    attr_accessor :code
+    attr_accessor :message
+    def initialize(code, message)
+      @code = code
+      @message = message
+    end
+  end
+
   
   def self.handle_error(error_code, message, file, line)
     #raise ConnectionError if error_code == 461
@@ -54,15 +65,9 @@ module Intersys
   # Class representing one object method
   # for internal use only
   class Method < Definition
-    attr_accessor :args
-    
     def initialize(database, class_name, name, object)
       super(database, class_name, name.to_s)
       method_initialize(object)
-    end
-    
-    def call(*method_args)
-      intern_call!(method_args)
     end
   end
   
@@ -76,15 +81,6 @@ module Intersys
     end
   end
 
-  # Method can return Cache %Status. It is marshalled to this class
-  class Status
-    attr_accessor :code
-    attr_accessor :message
-    def initialize(code, message)
-      @code = code
-      @message = message
-    end
-  end
 
   require File.dirname(__FILE__) + '/intersys_cache'
   
@@ -223,7 +219,7 @@ module Intersys
       # try to load class instance from database for this id
       # ID can be not integer
       def open(id)
-        open_intern(id.to_s.to_wchar)
+        call("%OpenId", id)
       end
       
       # Loads property definition with required name for required object
@@ -240,7 +236,7 @@ module Intersys
       
       # call class method
       def call(method_name, *args)
-        method(method_name, nil).call(*args)
+        method(method_name, nil).call!(args)
       end
       alias :intersys_call :call
     #def self.method_missing(method_name, *args)
@@ -260,7 +256,7 @@ module Intersys
     
     # Call the specified method
     def intersys_call(method, *args)
-      self.class.method(method, self).call(*args)
+      self.class.method(method, self).call!(args)
     end
     
     def method_missing(method, *args)
@@ -404,6 +400,10 @@ module Intersys
       
       def to_a
         load_list
+      end
+      
+      def include?(obj)
+        load_list.include?(obj)
       end
       
       def inspect

@@ -38,6 +38,7 @@ struct rbDefinition {
 	bool_t is_func;
 	bool_t is_class_method;
 	int num_args;
+	int passed_args;
 	void *args_info;
 	int arg_counter;
 	//Argument definitions
