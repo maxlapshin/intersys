@@ -7,7 +7,7 @@ require 'rake/contrib/rubyforgepublisher'
 #require 'lib/intersys'
 
 PKG_NAME = "intersys"
-PKG_VERSION = "0.0.2"
+PKG_VERSION = "0.0.4"
 PKG_AUTHOR = "Max Lapshin"
 PKG_EMAIL = "max@maxidoors.ru"
 PKG_HOMEPAGE = "http://maxidoors.ru/"
