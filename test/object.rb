@@ -7,16 +7,14 @@ end
 
 class QueryTest < Test::Unit::TestCase
   def test_open_and_save
-    @p = Person.open(21)
     @name = "Anni Fyo"
+    @id = 4
+    assert Person.intersys_call("Populate", 1000)
+    assert @p = Person.open(@id)
     @p.name = @name
-    @p.save
-    @p = Article.open(21)
+    assert @p.save
+    assert @p = Person.open(@id)
     assert_equal @name, @p.name
+    assert Person.intersys_call("%DeleteExtent")
   end
-
-   def test_populate
-     assert Person.intersys_call("Populate", 1000)
-     assert Person.intersys_call("%DeleteExtent")
-   end
 end
