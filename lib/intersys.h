@@ -23,6 +23,7 @@ struct rbObject {
 	h_database database;
 	int oref;
 	VALUE class_name;
+	bool_t closed;
 };
 
 struct rbDefinition {
@@ -41,6 +42,7 @@ struct rbDefinition {
 	int passed_args;
 	void *args_info;
 	int arg_counter;
+	VALUE object;
 	//Argument definitions
 	bool_t is_by_ref;
 	bool_t is_default;
@@ -53,6 +55,11 @@ struct rbDefinition {
 	VALUE class_name;
 	//Property definitions
 	int oref;
+};
+
+struct rbStatus {
+	VALUE code;
+	VALUE message;
 };
 
 enum { D_PROPERTY, D_METHOD, D_ARGUMENT};
@@ -74,6 +81,11 @@ VALUE string_from_wchar(VALUE self);
 VALUE rb_wcstr_new(const wchar_t *w_str, const char_size_t len);
 VALUE rb_wcstr_new2(const wchar_t *w_str);
 VALUE wcstr_new(const wchar_t *w_str, const char_size_t len);
+VALUE intersys_status_s_allocate(VALUE klass);
+VALUE intersys_status_initialize(VALUE self, VALUE code, VALUE message);
+VALUE intersys_status_code(VALUE self);
+VALUE intersys_status_message(VALUE self);
+VALUE intersys_status_to_s(VALUE self);
 
 /******* Database functions *******/
 
@@ -111,19 +123,23 @@ VALUE intersys_object_create(VALUE self);
 VALUE intersys_definition_s_allocate(VALUE klass);
 VALUE intersys_definition_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name);
 VALUE intersys_definition_cpp_type(VALUE self);
+VALUE intersys_definition_cpp_name(VALUE self);
 VALUE intersys_definition_cache_type(VALUE self);
 VALUE intersys_definition_name(VALUE self);
 VALUE intersys_definition_in_name(VALUE self);
 VALUE intersys_property_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE object);
 VALUE intersys_property_get(VALUE self);
 VALUE intersys_property_set(VALUE self, VALUE value);
-VALUE intersys_method_initialize(VALUE self, VALUE object);
+VALUE intersys_method_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE object);
 VALUE intersys_method_is_func(VALUE self);
 VALUE intersys_method_is_class_method(VALUE self);
 VALUE intersys_method_num_args(VALUE self);
+VALUE intersys_method_each_argument(VALUE self);
 VALUE intersys_method_call(VALUE self, VALUE args);
 VALUE intersys_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method);
 VALUE intersys_argument_default_value(VALUE self);
+VALUE intersys_argument_is_by_ref(VALUE self);
+VALUE intersys_argument_marshall_dlist(VALUE self, VALUE list);
 VALUE intersys_argument_marshall_dlist_elem(VALUE self, VALUE elem);
 
 // Private declarations. Not for public use

@@ -22,11 +22,7 @@ VALUE string_from_wchar(VALUE self) {
 
 int run(int err, char *file, int line) {
 	if (err != 0) {
-		VALUE handled = rb_funcall(mIntersys, rb_intern("handle_error"), 4, 
-			INT2FIX(err), rb_str_new2(cbind_get_last_err_msg()), rb_str_new2(file), INT2FIX(line));
-		if(handled == Qnil) {
-			rb_raise(rb_eStandardError, "Intersystems Cache error %d: %s in file %s: %d", err, cbind_get_last_err_msg(), file, line);
-		}
+		rb_raise(rb_eStandardError, "Intersystems Cache error %d: %s in file %s: %d", err, cbind_get_last_err_msg(), file, line);
 	}
 	return err;
 }
@@ -55,3 +51,41 @@ VALUE rb_wcstr_new(const wchar_t *w_str, const char_size_t len) {
 VALUE rb_wcstr_new2(const wchar_t *w_str) {
 	return wcstr_new(w_str, w_str ? wcslen(w_str) : -1);
 }
+
+static void intersys_status_mark(struct rbStatus* status) {
+	rb_gc_mark(status->message);
+}
+
+VALUE intersys_status_s_allocate(VALUE klass) {
+	struct rbStatus* status = ALLOC(struct rbStatus);
+	bzero(status, sizeof(struct rbStatus));
+	return Data_Wrap_Struct(klass, intersys_status_mark, 0, status);
+}
+
+VALUE intersys_status_initialize(VALUE self, VALUE code, VALUE message) {
+	struct rbStatus* status;
+	Data_Get_Struct(self, struct rbStatus, status);
+	status->code = code;
+	status->message = message;
+	rb_call_super(1, &message);
+	return self;
+}
+
+VALUE intersys_status_code(VALUE self) {
+	struct rbStatus* status;
+	Data_Get_Struct(self, struct rbStatus, status);
+	return status->code;
+}
+
+VALUE intersys_status_message(VALUE self) {
+	struct rbStatus* status;
+	Data_Get_Struct(self, struct rbStatus, status);
+	return status->message;
+}
+
+VALUE intersys_status_to_s(VALUE self) {
+	struct rbStatus* status;
+	Data_Get_Struct(self, struct rbStatus, status);
+	return status->message;
+}
+

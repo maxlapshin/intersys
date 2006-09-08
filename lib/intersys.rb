@@ -14,79 +14,98 @@ module Intersys
   rescue
   end
   
-  # Basic exception, thrown in intersys driver
-  class IntersysException < StandardError
-  end
-  
-  # Exception, thrown from Object.open method, when no such ID in database
-  class ObjectNotFound < IntersysException
-  end
-  
-  # Error of marshalling arguments
-  class MarshallError < IntersysException
-  end
-
-  # Error of unmarshalling results
-  class UnMarshallError < IntersysException
-  end
-  
-  # Error establishing connection with database
-  class ConnectionError < IntersysException
-  end
-
-  # Method can return Cache %Status. It is marshalled to this class
-  class Status < IntersysException
-    attr_accessor :code
-    attr_accessor :message
-    def initialize(code, message)
-      @code = code
-      @message = message
-    end
-  end
-
-  
-  def self.handle_error(error_code, message, file, line)
-    #raise ConnectionError if error_code == 461
-  end
-
-  # Basic class for arguments, methods and properties description
-  # for internal use only
-  class Definition
-    def initialize(database, class_name, name)
-      @database = database
-      @class_name = class_name
-      @name = name
-      intern_initialize(database, class_name, name)
-    end
-  end
-  
-  # Class representing one object property
-  # for internal use only
-  class Property < Definition
-  end
-  
-  # Class representing one object method
-  # for internal use only
-  class Method < Definition
-    def initialize(database, class_name, name, object)
-      super(database, class_name, name.to_s)
-      method_initialize(object)
-    end
-  end
-  
-  # Class representing one method argument
-  # for internal use only
-  class Argument < Definition
-    def marshall_dlist(list)
-      list.each do |elem|
-        marshall_dlist_element(elem)
-      end
-    end
-  end
-
-
   require File.dirname(__FILE__) + '/intersys_cache'
-  
+
+  class Method
+    def description
+      args = []
+      each_argument do |arg|
+        descr = ""
+        descr << "out " if arg.by_ref?
+        descr << "#{arg.cache_type} #{arg.name}"
+        descr << (' = '+arg.default) if arg.default
+        args << descr
+      end
+      "#{cache_type} #{name}("+args.join(', ')+")"
+    end
+  end
+
+  module Callable
+    # Returns ClassDefinition object for current class
+    def intersys_reflector
+      @reflector ||= Intersys::Reflection::ClassDefinition.open(class_name)
+    end
+    
+    # returns list of methods for this class
+    def intersys_methods
+      @methods ||= intersys_reflector._methods
+    end
+
+    # returns list of properties for current class
+    def intersys_properties
+      @properties ||= intersys_reflector.properties
+    end
+    
+  #protected
+    # Loads property definition with required name for required object
+    # for internal use only
+    def intersys_property(name)
+      Property.new(database, class_name, name.to_s, self)
+    end
+
+    # Loads method definition with required name for required object
+    # for internal use only
+    def intersys_method(name)
+      Method.new(database, class_name, name.to_s, self)
+    end
+    
+  public
+    # call class method
+    def intersys_call(method_name, *args)
+      intersys_method(method_name).call!(args)
+    end
+    alias :call :intersys_call
+    
+    def intersys_has_property?(property)
+      self.intersys_reflector.properties.to_a.include?(property)
+    end
+    
+    def intersys_has_method?(method)
+      self.intersys_reflector._methods.to_a.include?(method)
+    end
+    
+    # Get the specified property
+    def intersys_get(property)
+      intersys_property(property).get
+    end
+    
+    # Set the specified property
+    def intersys_set(property, value)
+      intersys_property(property).set(value)
+    end
+
+    def method_missing(method, *args)
+      method_name = method.to_s.camelize
+      if match_data = method_name.match(/intersys_(.*)/)
+        # Protection from errors in this method
+        return super(method, *args)
+      end
+      if match_data = method_name.match(/(\w+)=/)
+        return intersys_set(match_data.captures.first, args.first)
+      end
+      return intersys_get(method_name) if intersys_has_property?(method_name)
+      begin
+        return intersys_call(method_name, *args)
+      rescue NoMethodError => e
+      end
+      begin
+        return intersys_call("%"+method_name, *args)
+      rescue NoMethodError => e
+      end
+      super(method, *args)
+    end
+    
+  end
 
   # Basic class for all classes, through which is performed access to Cache classes
   # For each Cache class must be created ruby class, inherited from Intersys::Object
@@ -133,7 +152,18 @@ module Intersys
         class_names[class_name] = self
         class_name
       end
+      
     public    
+      def intersys_description
+        "class #{class_name} { \n" + intersys_reflector.all_methods.map do |mtd| 
+          begin
+            "\t"+intersys_method(mtd).description+";\n"
+          rescue
+            "\tundefined #{mtd}\n"
+          end
+        end.join("") + "};"
+      end
+
       # Help to work with instance variables of Intersys::Object class
       # required, because list of registered descendants of Intersys::Object,
       # database connection etc. should be in one place
@@ -186,20 +216,6 @@ module Intersys
         end
       end
 
-      # Returns ClassDefinition object for current class
-      def reflector
-        @reflector ||= Intersys::Reflection::ClassDefinition.open(class_name)
-      end
-      
-      # returns list of methods for this class
-      def intersys_methods
-        @methods ||= reflector.intersys_get("Methods")
-      end
-
-      # returns list of properties for current class
-      def intersys_properties
-        @properties ||= reflector.properties
-      end
       
       def inherited(klass)
         class_names[klass.class_name] = klass
@@ -214,80 +230,36 @@ module Intersys
         5
       end
     
-      # create new instance of this class
-      def create
-        create_intern
+      def delete_all
+        intersys_call("%DeleteExtent")
       end
-
-      # try to load class instance from database for this id
-      # ID can be not integer
-      def open(id)
-        call("%OpenId", id)
-      end
-      
-      # Loads property definition with required name for required object
-      # for internal use only
-      def property(name, object)
-        Property.new(database, class_name, name.to_s.to_wchar, object)
-      end
-  
-      # Loads method definition with required name for required object
-      # for internal use only
-      def method(name, object)
-        Method.new(database, class_name, name.to_s.to_wchar, object)
-      end
-      
-      # call class method
-      def call(method_name, *args)
-        method(method_name, nil).call!(args)
-      end
-      alias :intersys_call :call
-    #def self.method_missing(method_name, *args)
-    #end
     
     end
     
-    # Get the specified property
-    def intersys_get(property)
-      self.class.property(property, self).get
+    def database
+      self.class.database
     end
     
-    # Set the specified property
-    def intersys_set(property, value)
-      self.class.property(property, self).set(value)
+    def class_name
+      self.class.class_name
     end
     
-    # Call the specified method
-    def intersys_call(method, *args)
-      self.class.method(method, self).call!(args)
+    def open(id)
+      intersys_call("%Open", id)
     end
-    
-    def method_missing(method, *args)
-      method_name = method.to_s.camelize
-      if match_data = method_name.match(/(\w+)=/)
-        return intersys_set(match_data.captures.first, args.first)
-      end
-      return intersys_get(method_name) if has_property?(method_name)
-      return intersys_call(method_name, *args) if has_method?(method_name)
-      puts "Checking whether %#{method_name} is here: #{self.class.reflector._methods}"
-      return intersys_call("%"+method_name, *args) if has_method?("%"+method_name)
-      super(method, *args)
-    end
-
-    def has_property?(property)
-      self.class.reflector.properties.to_a.include?(property)
-    end
-    
-    def has_method?(method)
-      self.class.reflector._methods.to_a.include?(method)
-    end
-    
     
     # Returns id of current object
     def id
       intersys_call("%Id").to_i
     end
+    
+    def destroy
+      self.class.intersys_call("%DeleteId", id)
+    end
+    
+    include Callable
   end
+  Intersys::Object.extend(Callable)
   
   # Class representing one query
   # You shouldn't create it yourself
@@ -329,9 +301,9 @@ module Intersys
     def query(query)
       data = []
       q = create_query(query).execute.fill(data).close
-      1.upto(data.first.size) do |i|
-        puts q.column_name(i)
-      end
+      #1.upto(data.first.size) do |i|
+      #  puts q.column_name(i)
+      #end
       data
     end
   end
@@ -363,6 +335,16 @@ module Intersys
       
       def properties
         @properties ||= intersys_get("Properties")
+      end
+      
+      def all_methods
+        _methods.to_a + self.super.split(",").map do |klass|
+          klass = klass.strip
+          if match_data = klass.match(/^%([^\.]+)$/)
+            klass = "%Library.#{match_data.captures.first}"
+          end
+          self.class.open(klass).all_methods
+        end.flatten
       end
     end
 

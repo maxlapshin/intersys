@@ -34,16 +34,17 @@ VALUE intersys_object_open_by_id(VALUE self, VALUE oid) {
 	int concurrency = rb_funcall(self, rb_intern("concurrency"), 0);
 	int timeout = rb_funcall(self, rb_intern("timeout"), 0);
 	int error;
+	VALUE id = rb_funcall(oid, rb_intern("to_s"), 0);
 	struct rbObject* object;
 	VALUE r_object = rb_funcall(self, rb_intern("new"), 0);
 	Data_Get_Struct(r_object, struct rbObject, object);
 	
-    error = cbind_openid(object->database, CLASS_NAME(object), WCHARSTR(oid), concurrency, timeout, &object->oref);
+    error = cbind_openid(object->database, CLASS_NAME(object), WCHARSTR(TOWCHAR(id)), concurrency, timeout, &object->oref);
 	switch(error) {
 		case 0:
 			return r_object;
 		case -9: 
-			rb_raise(cObjectNotFound, "Object with id %s not found", PRINTABLE(oid));
+			rb_raise(cObjectNotFound, "Object with id %s not found", STR(id));
 			return Qnil;
 		default: 
 			RUN(error);
@@ -62,6 +63,5 @@ VALUE intersys_object_create(VALUE self) {
 	RUN(cbind_create_new(object->database, CLASS_NAME(object), init_val,&object->oref));
 	return r_object;
 }
-
 
 

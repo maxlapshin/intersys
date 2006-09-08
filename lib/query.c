@@ -7,9 +7,7 @@
 #include <sqlucode.h>
 
 static void query_close(struct rbQuery* query) {
-	printf("Trying to close query (%d,%d)\n", query->closed, query->executed);
 	if(!query->closed && query->executed) {
-		printf("Closing query\n");
 		RUN(cbind_query_close(query->query));
 		query->closed = 1;
 	}

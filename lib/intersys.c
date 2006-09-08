@@ -1,19 +1,27 @@
 #include "intersys.h"
 
-VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound, cStatus;
-VALUE cTime, cMarshallError, cUnMarshallError;
+VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument;
+VALUE cTime, cMarshallError, cUnMarshallError, cObjectNotFound, cIntersysException, cStatus;
 
 void Init_intersys_cache() {
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
 	rb_define_method(rb_cString, "from_wchar", string_from_wchar, 0);
 
+	cTime = rb_const_get(rb_cObject, rb_intern("Time"));
 
 	mIntersys = rb_define_module("Intersys");
-	cObjectNotFound = rb_const_get(mIntersys, rb_intern("ObjectNotFound"));
-	cMarshallError = rb_const_get(mIntersys, rb_intern("MarshallError"));
-	cUnMarshallError = rb_const_get(mIntersys, rb_intern("UnMarshallError"));
-	cStatus = rb_const_get(mIntersys, rb_intern("Status"));
-	cTime = rb_const_get(rb_cObject, rb_intern("Time"));
+	cIntersysException = rb_define_class_under(mIntersys, "IntersysException", rb_eStandardError);
+	cObjectNotFound = rb_define_class_under(mIntersys, "ObjectNotFound", cIntersysException);
+	cMarshallError = rb_define_class_under(mIntersys, "MarshallError", cIntersysException);
+	cUnMarshallError = rb_define_class_under(mIntersys, "UnMarshallError", cIntersysException);
+	
+	
+	cStatus = rb_define_class_under(mIntersys, "Status", cIntersysException);
+	rb_define_alloc_func(cStatus, intersys_status_s_allocate);
+	rb_define_method(cStatus, "initialize", intersys_status_initialize, 2);
+	rb_define_method(cStatus, "code", intersys_status_code, 0);
+	rb_define_method(cStatus, "message", intersys_status_message, 0);
+	rb_define_method(cStatus, "to_s", intersys_status_to_s, 0);
 
 
 	cDatabase = rb_define_class_under(mIntersys, "Database", rb_cObject);
@@ -40,32 +48,46 @@ void Init_intersys_cache() {
 	cObject = rb_define_class_under(mIntersys, "Object", rb_cObject);
 	rb_define_alloc_func(cObject, intersys_object_s_allocate);
 	rb_define_method(cObject, "initialize", intersys_object_initialize, 0);
-	rb_define_singleton_method(cObject, "create_intern", intersys_object_create, 0);
-	rb_define_singleton_method(cObject, "open_intern", intersys_object_open_by_id, 1);
+	rb_define_singleton_method(cObject, "create", intersys_object_create, 0);
+	rb_define_singleton_method(cObject, "open", intersys_object_open_by_id, 1);
 
-	cDefinition = rb_const_get(mIntersys, rb_intern("Definition"));
+	cDefinition = rb_define_class_under(mIntersys, "Definition", rb_cObject);
 	rb_define_alloc_func(cDefinition, intersys_definition_s_allocate);
-	rb_define_method(cDefinition, "intern_initialize", intersys_definition_initialize, 3);
+	rb_define_method(cDefinition, "initialize", intersys_definition_initialize, 3);
 	rb_define_method(cDefinition, "cpp_type", intersys_definition_cpp_type, 0);
+	rb_define_method(cDefinition, "cpp_name", intersys_definition_cpp_name, 0);
 	rb_define_method(cDefinition, "cache_type", intersys_definition_cache_type, 0);
 	rb_define_method(cDefinition, "name", intersys_definition_name, 0);
 	rb_define_method(cDefinition, "in_name", intersys_definition_in_name, 0);
 
-	cProperty = rb_const_get(mIntersys, rb_intern("Property"));
+	cProperty = rb_define_class_under(mIntersys, "Property", cDefinition);
 	rb_define_method(cProperty, "initialize", intersys_property_initialize, 4);
 	rb_define_method(cProperty, "get", intersys_property_get, 0);
 	rb_define_method(cProperty, "set", intersys_property_set, 1);
 
-	cMethod = rb_const_get(mIntersys, rb_intern("Method"));
-	rb_define_method(cMethod, "method_initialize", intersys_method_initialize, 1);
+	cMethod = rb_define_class_under(mIntersys, "Method", cDefinition);
+	rb_define_method(cMethod, "initialize", intersys_method_initialize, 4);
 	rb_define_method(cMethod, "func?", intersys_method_is_func, 0);
 	rb_define_method(cMethod, "class_method?", intersys_method_is_class_method, 0);
 	rb_define_method(cMethod, "num_args", intersys_method_num_args, 0);
+	rb_define_method(cMethod, "each_argument", intersys_method_each_argument, 0);
 	rb_define_method(cMethod, "call!", intersys_method_call, 1);
 	
-	cArgument = rb_const_get(mIntersys, rb_intern("Argument"));
+	cArgument = rb_define_class_under(mIntersys, "Argument", cDefinition);
 	rb_define_method(cArgument, "initialize", intersys_argument_initialize, 4);
 	rb_define_method(cArgument, "default", intersys_argument_default_value, 0);
 	rb_define_method(cArgument, "marshall_dlist_element", intersys_argument_marshall_dlist_elem, 1);
+	rb_define_method(cArgument, "marshall_dlist", intersys_argument_marshall_dlist, 1);
+	/*
+	rb_eval_string(
+	"class Argument \n" \
+    "def marshall_dlist(list)\n" \
+    "  list.each do |elem|\n" \
+    "    marshall_dlist_element(elem)\n" \
+    "  end\n" \
+    "end\n" \
+  	"end");
+	*/
+	rb_define_method(cArgument, "by_ref?", intersys_argument_is_by_ref, 0);
 }
 

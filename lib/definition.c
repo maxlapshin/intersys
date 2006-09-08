@@ -21,24 +21,35 @@ static void intersys_definition_free(struct rbDefinition* definition) {
 
 static void intersys_definition_mark(struct rbDefinition* definition) {
 	rb_gc_mark(definition->class_name);
+	if(definition->object != Qnil) {
+		rb_gc_mark(definition->object);
+	}
 }
 
 VALUE intersys_definition_s_allocate(VALUE klass) {
 	struct rbDefinition* definition = ALLOC(struct rbDefinition);
 	bzero(definition, sizeof(struct rbDefinition));
+	definition->object = Qnil;
 	return Data_Wrap_Struct(klass, intersys_definition_mark, intersys_definition_free, definition);
 }
 
 VALUE intersys_definition_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name) {
 	struct rbDatabase* database;
 	struct rbDefinition* definition;
+	VALUE name_w = Qnil;
 	
 	Data_Get_Struct(r_database, struct rbDatabase, database);
 	Data_Get_Struct(self, struct rbDefinition, definition);
-	
-	definition->database = database->database;
-	definition->in_name = WCHARSTR(name);
+
+	rb_iv_set(self, "@database", r_database);
+	rb_iv_set(self, "@class_name", class_name);
 	definition->class_name = TOWCHAR(class_name);
+	rb_iv_set(self, "@class_name_w", definition->class_name);
+	rb_iv_set(self, "@name", name);
+	name_w = TOWCHAR(name);
+	rb_iv_set(self, "@name_w", name_w);
+	definition->database = database->database;
+	definition->in_name = WCHARSTR(name_w);
 	
 	RUN(cbind_alloc_class_def(definition->database, CLASS_NAME(definition), &definition->cl_def));
 	return self;
@@ -48,6 +59,27 @@ VALUE intersys_definition_cpp_type(VALUE self) {
 	struct rbDefinition* definition;
 	Data_Get_Struct(self, struct rbDefinition, definition);
 	return INT2FIX(definition->cpp_type);
+}
+
+VALUE intersys_definition_cpp_name(VALUE self) {
+	struct rbDefinition* definition;
+	Data_Get_Struct(self, struct rbDefinition, definition);
+	switch(definition->cpp_type) {
+		case CBIND_VOID: return ID2SYM(rb_intern("void"));
+		case CBIND_OBJ_ID: return ID2SYM(rb_intern("object"));
+		case CBIND_INT_ID: return ID2SYM(rb_intern("int"));
+		case CBIND_DOUBLE_ID: return ID2SYM(rb_intern("double"));
+		case CBIND_BINARY_ID: return ID2SYM(rb_intern("binary"));
+		case CBIND_STRING_ID: return ID2SYM(rb_intern("string"));
+		case CBIND_STATUS_ID: return ID2SYM(rb_intern("status"));
+		case CBIND_TIME_ID: return ID2SYM(rb_intern("time"));
+		case CBIND_DATE_ID: return ID2SYM(rb_intern("date"));
+		case CBIND_TIMESTAMP_ID: return ID2SYM(rb_intern("timestamp"));
+		case CBIND_BOOL_ID: return ID2SYM(rb_intern("bool"));
+		case CBIND_CURRENCY_ID: return ID2SYM(rb_intern("currency"));
+		case CBIND_DLIST_ID: return ID2SYM(rb_intern("dlist"));
+	}
+	return ID2SYM(rb_intern("unknown"));
 }
 
 
@@ -113,14 +145,21 @@ VALUE intersys_property_set(VALUE self, VALUE value) {
 
 
 
-VALUE intersys_method_initialize(VALUE self, VALUE object) {
+VALUE intersys_method_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE object) {
 	struct rbDefinition* method;
+	int error;
+	VALUE args[] = {r_database, class_name, name};
+	rb_call_super(3, args);
+	
 	
 	Data_Get_Struct(self, struct rbDefinition, method);
 
 	method->type = D_METHOD;
     RUN(cbind_alloc_mtd_def(&method->def));
-    RUN(cbind_get_mtd_def(method->cl_def, method->in_name, method->def));
+    error = (cbind_get_mtd_def(method->cl_def, method->in_name, method->def));
+	if(error) {
+		rb_raise(rb_eNoMethodError, "No such method %s in Cache class %s", STR(FROMWCSTR(method->in_name)), STR(rb_iv_get(self, "@class_name")));
+	}
     RUN(cbind_get_mtd_is_func(method->def, &method->is_func));
     RUN(cbind_get_mtd_cpp_type(method->def, &method->cpp_type));
     RUN(cbind_get_mtd_cache_type(method->def, &method->cache_type));
@@ -128,11 +167,11 @@ VALUE intersys_method_initialize(VALUE self, VALUE object) {
     RUN(cbind_get_mtd_num_args(method->def, &method->num_args));
     RUN(cbind_get_mtd_args_info(method->def, &method->args_info));
     RUN(cbind_get_mtd_name(method->def, &method->name));
-	if(object != Qnil) {
+	method->object = object;
+	if(rb_obj_is_kind_of(object, cObject)) {
 		struct rbObject* obj;
 		Data_Get_Struct(object, struct rbObject, obj);
 		method->oref = obj->oref;
-		rb_iv_set(self, "@object", object);
 	} else {
 		method->oref = -1;
 	}
@@ -187,6 +226,10 @@ static VALUE extract_next_dlist_elem(char *dlist, int* elem_size) {
         bool_t is_uni;
 		VALUE val;
 
+		rb_warn("Unmarshalling strings from dlist is untested. If You see this message, contact developer at max@maxidoors.ru");
+		//FIXME: If unicode string is returned, there are no three bytes padding at the end of string.
+		// We shouldn't use rb_str_new for it, because there must be allocating buffer by hands. 
+		// RSTRING(str)->aux.capa must be size+4 (usually it is size+1), because of wcslen requires wide zero at the end (4 bytes)
         RUN(cbind_dlist_get_str_elem(dlist, &is_uni, &str, &size, elem_size));
 		val = rb_str_new(str, size);
         if (is_uni) {
@@ -197,16 +240,12 @@ static VALUE extract_next_dlist_elem(char *dlist, int* elem_size) {
 	rb_raise(cUnMarshallError, "Couldn't unmarshall dlist element");
 }
 
-
-
-
-
 VALUE intersys_method_call(VALUE self, VALUE args) {
 	struct rbDefinition* method;
 	int i;
 	Check_Type(args, T_ARRAY);
 	Data_Get_Struct(self, struct rbDefinition, method);
-	if(method->num_args < RARRAY(args)->len) {
+	if(RARRAY(args)->len > method->num_args) {
 		rb_raise(rb_eArgError, "wrong number of arguments (%d for %d)", RARRAY(args)->len, method->num_args);
 	}
 	VALUE database = rb_iv_get(self, "@database");
@@ -227,9 +266,28 @@ VALUE intersys_method_call(VALUE self, VALUE args) {
         RUN(cbind_set_next_arg_as_res(method->database, method->cpp_type));
     }
     RUN(cbind_run_method(method->database, method->oref, CLASS_NAME(method), method->in_name));
+	//TODO: No support for arguments, passed by reference. I don't know, how to implement it.
+	//Perhaps, we must require method replace! from each argument, that is possible to be referenced
 	return intersys_method_extract_retval(self);
 }
 
+VALUE intersys_method_each_argument(VALUE self) {
+	struct rbDefinition* method;
+	int i;
+	VALUE database = rb_iv_get(self, "@database");
+	VALUE class_name = rb_iv_get(self, "@class_name");
+	VALUE name = rb_iv_get(self, "@name");
+	Data_Get_Struct(self, struct rbDefinition, method);
+
+	RUN(cbind_reset_args(method->database));
+	RUN(cbind_mtd_rewind_args(method->def));
+	for(i = 0; i < method->num_args; i++) {
+		VALUE arg = rb_funcall(cArgument, rb_intern("new"), 4, database, class_name, name, self);
+		rb_yield(arg);
+		RUN(cbind_mtd_arg_next(method->def));
+	}
+	return self;
+}
 
 VALUE intersys_argument_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE r_method) {
 	struct rbDefinition* argument;
@@ -321,7 +379,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			if(is_null) {
 				return Qnil;
 			}
-			return rb_funcall(rb_cTime, rb_intern("local"), 3, INT2NUM(year), INT2NUM(month), INT2NUM(day))
+			return rb_funcall(rb_cTime, rb_intern("local"), 3, INT2NUM(year), INT2NUM(month), INT2NUM(day));
         }
         case CBIND_TIMESTAMP_ID:
         {
@@ -372,7 +430,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			//TODO: if code is not OK, we should throw exception. No class Status is required
             RUN(cbind_get_arg_as_status(method->database, method->passed_args, &code, NULL, 0, MULTIBYTE, &size, &is_null));
 			if(!code || is_null) {
-				return Qtrue;
+				return method->object;
 			}
 			buf = rb_str_buf_new(size);
             RUN(cbind_get_arg_as_status(method->database, method->passed_args, &code, STR(buf), RSTRING(buf)->aux.capa, MULTIBYTE, &size, &is_null));
@@ -581,3 +639,23 @@ VALUE intersys_argument_set(VALUE self, VALUE obj) {
 	return self;
 	
 }
+
+VALUE intersys_argument_marshall_dlist(VALUE self, VALUE list) {
+	//struct rbDefinition* argument;
+	//Data_Get_Struct(self, struct rbDefinition, argument);
+	rb_iterate(rb_each, list, intersys_argument_marshall_dlist_elem, Qnil);
+	return self;
+}
+
+VALUE intersys_argument_is_by_ref(VALUE self) {
+	struct rbDefinition* argument;
+	Data_Get_Struct(self, struct rbDefinition, argument);
+	return argument->is_by_ref ? Qtrue : Qfalse;
+}
+
+
+
+
+
+
+

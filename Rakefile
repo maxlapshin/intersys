@@ -14,7 +14,7 @@ PKG_HOMEPAGE = "http://maxidoors.ru/"
 PKG_SUMMARY = "Intersystems Cache ruby driver"
 PKG_RDOC_OPTS = ['--main=README',
                  '--line-numbers',
-#                 '--webcvs=http://rubyforge.org/cgi-bin/viewcvs.cgi/rutils/%s?cvsroot=rutils',
+                 '--webcvs=http://svn.maxidoors.ru/cache-ruby',
                  '--charset=utf-8',
                  '--promiscuous']
 
@@ -72,7 +72,7 @@ Rake::RDocTask.new("doc") do |rdoc|
 #  rdoc.rdoc_files.include('CHANGELOG')
 #  rdoc.rdoc_files.include('TODO')
   rdoc.options = PKG_RDOC_OPTS
-  rdoc.rdoc_files.include FileList['lib/*.rb', 'lib/**/*.rb']
+  rdoc.rdoc_files.include "lib/intersys.rb"
 end
 
 #Rake::GemPackageTask.new(spec) do |p|
