@@ -7,14 +7,15 @@ require 'rake/contrib/rubyforgepublisher'
 #require 'lib/intersys'
 
 PKG_NAME = "intersys"
-PKG_VERSION = "0.0.4"
+PKG_VERSION = "0.1"
 PKG_AUTHOR = "Max Lapshin"
 PKG_EMAIL = "max@maxidoors.ru"
 PKG_HOMEPAGE = "http://maxidoors.ru/"
 PKG_SUMMARY = "Intersystems Cache ruby driver"
+PKG_SVN = "http://svn.maxidoors/ru/cache-ruby"
 PKG_RDOC_OPTS = ['--main=README',
                  '--line-numbers',
-                 '--webcvs=http://svn.maxidoors.ru/cache-ruby',
+                 '--webcvs='+PKG_SVN,
                  '--charset=utf-8',
                  '--promiscuous']
 
@@ -94,8 +95,8 @@ end
 
 desc "Push docs to servers"
 task :push_docs do
-  user = "max_lapshin" 
-  project = '/var/www/gforge-projects/rutils'
+  user = "max_lapshin@intersys.rubyforge.org" 
+  project = '/var/www/gforge-projects/intersys/doc'
   local_dir = 'doc'
   [ 
     Rake::SshDirPublisher.new( user, project, local_dir),
@@ -111,4 +112,10 @@ end
 desc "Rebuild binary driver"
 task :rebuild do
   puts `cd lib; ruby extconf.rb; make clean all`
+end
+
+desc "Mark files in SVN"
+task :release => [:clobber, :package] do
+    svn_aware_revision = 'r_' + PKG_VERSION.gsub(/-|\./, '_')
+    `svn copy #{PKG_SVN}/trunk #{PKG_SVN}/#{svn_aware_revision}`
 end

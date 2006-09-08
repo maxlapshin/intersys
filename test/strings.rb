@@ -11,4 +11,12 @@ class StringTest < Test::Unit::TestCase
   def test_to_wchar
     assert_equal @@wide_string, @@simple_string.to_wchar
   end
+  
+  def test_stress_wide
+    assert_equal @@wide_string, @@wide_string.from_wchar.to_wchar.from_wchar.to_wchar
+  end
+
+  def test_stress
+    assert_equal @@simple_string, @@simple_string.to_wchar.from_wchar.to_wchar.from_wchar
+  end
 end

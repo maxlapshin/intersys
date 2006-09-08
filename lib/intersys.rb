@@ -93,7 +93,7 @@ module Intersys
       if match_data = method_name.match(/(\w+)=/)
         return intersys_set(match_data.captures.first, args.first)
       end
-      return intersys_get(method_name) if intersys_has_property?(method_name)
+      return intersys_get(method_name) if intersys_has_property?(method_name) && args.empty?
       begin
         return intersys_call(method_name, *args)
       rescue NoMethodError => e
@@ -153,7 +153,9 @@ module Intersys
         class_name
       end
       
-    public    
+    public
+      # Nice function, that generates description of Cache class, looking just as C++ one
+      # Maybe, later, it will be possible even to generate IDL, using this code
       def intersys_description
         "class #{class_name} { \n" + intersys_reflector.all_methods.map do |mtd| 
           begin
@@ -188,15 +190,18 @@ module Intersys
         @prefix ||= "User"
       end
 
+      # Returns Cache class name, if called without parameters, or sets one, if passed
       def class_name(name = nil)
         self.class_name = name if name
         self.class_name = (prefix + "." + to_s) unless @class_name
         @class_name 
       end
 
-      def database(db = nil)
+      # Returns database, if called without parameters, or sets one, if passed
+      # Once established, it is not possible now to connect to another database
+      def database(db_options = {})
         common_get_or_set("@database") do
-          db || Intersys::Database.new(:user => "_SYSTEM", :password => "SYS", :namespace => "User")
+          Intersys::Database.new({:user => "_SYSTEM", :password => "SYS", :namespace => "User"}.merge(db_options))
         end
       end
             
@@ -216,11 +221,12 @@ module Intersys
         end
       end
 
-      
+      # :nodoc
       def inherited(klass)
         class_names[klass.class_name] = klass
       end
     
+      # Look into Cache documentation for what is concurrency. I don't know
       def concurrency
         1
       end
@@ -230,29 +236,33 @@ module Intersys
         5
       end
     
+      # Nice method, that deletes all instances of class. 
+      # You can just Person.delete_extent, but Person.delete_all looks more like ActiveRecord
       def delete_all
         intersys_call("%DeleteExtent")
       end
     
     end
     
+    # You can ask for database from instance
     def database
       self.class.database
     end
     
+    # You can ask from instance it's Cache class name
     def class_name
       self.class.class_name
     end
     
-    def open(id)
-      intersys_call("%Open", id)
-    end
-    
-    # Returns id of current object
+    # Returns id of current object.
+    # You can remove this method and You will get string ID, so leave it here
+    # However, if You ask reflector for id, it will give incorrect answer,
+    # because Cache allows id to be string
     def id
       intersys_call("%Id").to_i
     end
     
+    # Destroys current object
     def destroy
       self.class.intersys_call("%DeleteId", id)
     end

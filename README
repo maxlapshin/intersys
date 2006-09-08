@@ -1,0 +1,63 @@
+This is driver for post-relational database Cache, created by Intersystems (http://intersystems.com/cache/index.html)
+
+Author: Max Lapshin <max@maxidoors.ru>
+Weblog: http://maxidoors.ru
+Home page of the project: http://rubyforge.org/projects/intersys
+
+Currently it supports Object access to Cache and preliminary version of SQL.
+
+To use Cache objects, You must declare proxy class:
+
+	class Person < Intersys::Object
+	end
+
+By default database connection is established with localhost:1973, user _SYSTEM, password SYS
+
+Database connection is shared among ALL classes. Currently, it is impossible to establish connection
+with two databases simultaneously
+
+If You need some other database settings, You must declare it:
+
+	class Person < Intersys::Object
+	  database {:user => "_SYSTEM", :password => "SYS", :namespace => "User", :host => "localhost", :port => "1972"}
+	end
+
+
+After initialization You get following methods for Person:
+
+	Person.intersys_call
+	Person.intersys_methods
+	Person.open(id)
+
+Also, there is very slow
+  
+	Person.all_methods
+
+It loads whole hierarchy of classes and loads all methods from all of them. Method
+  
+	Person.intersys_description 
+
+uses this.
+
+
+You can load proxy interface to Cache object:
+
+	@p = Person.open(id)
+	puts @p.intersys_methods
+
+	puts @p.name
+	puts @p.title
+
+
+Naming conventions:
+
+You have no need to declare proxy methods from ruby class to Cache methods.
+When method_missing is called on instance of Intersys::Object, name of method
+is camelized.
+
+Person.delete_extent is transferred to 
+1. Property DeleteExtent
+2. Method DeleteExtent()
+3. Method %DeleteExtent()
+
+Used which of them first is found.

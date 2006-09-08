@@ -7,6 +7,7 @@ end
 
 class QueryTest < Test::Unit::TestCase
   def test_query1
+    return
     @db = Intersys::Database.new({})
 
     Person.populate(100)
@@ -28,7 +29,13 @@ class QueryTest < Test::Unit::TestCase
     @db.rollback
   end
   
+  def test_select
+    @db = Intersys::Database.new({})
+    assert @db.query("select Id,name,DOB from sample.person")
+  end
+  
   def test_alter
+    return
     @db = Intersys::Database.new({})
 
     @db.start
