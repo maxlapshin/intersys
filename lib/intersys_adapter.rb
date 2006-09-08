@@ -1,4 +1,5 @@
 # Author/Maintainer: Max Lapshin <max@maxidoors.ru>
+
 require 'rubygems'
 require_gem 'activerecord'
 
@@ -8,7 +9,7 @@ module ActiveRecord
   class Base
     def self.intersys_connection(config)
       config = config.symbolize_keys
-      require 'intersys' unless const_defined?(Intersys)
+      require 'intersys'
       intersys = Intersys::Database.new(config)
       ConnectionAdapters::IntersysAdapter.new(intersys, logger, config)
     end
