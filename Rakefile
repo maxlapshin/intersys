@@ -12,7 +12,7 @@ PKG_AUTHOR = "Max Lapshin"
 PKG_EMAIL = "max@maxidoors.ru"
 PKG_HOMEPAGE = "http://maxidoors.ru/"
 PKG_SUMMARY = "Intersystems Cache ruby driver"
-PKG_SVN = "http://svn.maxidoors/ru/cache-ruby"
+PKG_SVN = "http://svn.maxidoors.ru/cache-ruby"
 PKG_RDOC_OPTS = ['--main=README',
                  '--line-numbers',
                  '--webcvs='+PKG_SVN,
@@ -30,7 +30,7 @@ spec = Gem::Specification.new do |s|
   s.summary = PKG_SUMMARY
   s.require_path = "lib"
   s.rubyforge_project = PKG_NAME
-  s.files = FileList["{bin,test,lib}/**/*"].exclude("rdoc").exclude(".svn").exclude(".DS_Store").exclude("*.o").to_a
+  s.files = FileList["{bin,test,lib}/**/*"].exclude("rdoc").exclude(".svn").exclude(".DS_Store").exclude("**/*.o").exclude("**/*.bundle").exclude("**/*.log").to_a
 	s.files << ["Rakefile", "README", "init.rb"]
   s.test_files = FileList["{test}/**/*test.rb"].to_a
   s.autorequire = "intersys"
@@ -117,5 +117,5 @@ end
 desc "Mark files in SVN"
 task :release => [:clobber, :package] do
     svn_aware_revision = 'r_' + PKG_VERSION.gsub(/-|\./, '_')
-    `svn copy #{PKG_SVN}/trunk #{PKG_SVN}/#{svn_aware_revision}`
+    puts `svn copy #{PKG_SVN}/trunk #{PKG_SVN}/tags/#{svn_aware_revision} -m "release #{svn_aware_revision}"`
 end
