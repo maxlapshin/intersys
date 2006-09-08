@@ -276,18 +276,6 @@ module Intersys
   class Query
     attr_reader :database
     
-    def initialize(database, query)
-      @database = database
-      native_initialize(database, query.to_wchar)
-    end
-    
-    def each
-      while (row = self.fetch) && row.size > 0
-        #puts "Loaded row #{row}"
-        yield row
-      end
-    end
-    
     def to_a
       data = []
       self.each {|row| data << row}
@@ -302,19 +290,47 @@ module Intersys
   
   # Class representing Cache database connection
   class Database
+  protected
+    def strip_param(query, name)
+      if match_data = query.match(/#{name}(\s*)(\d+)/i)
+        query[match_data.to_s] = ""
+        match_data.captures.last
+      end
+    end
+  
+  public
     def create_query(query)
-      Query.new(self, query)
+      @limit = strip_param(query, "LIMIT")
+      @offset = strip_param(query, "OFFSET")
+      q = Query.new(self, query)
+      q.limit = @limit if @limit
+      q.offset = @offset if @offset
+      q
     end
     
     # This method creates SQL query, runs it, restores data
     # and closes query
-    def query(query)
+    def query(query, params = [])
       data = []
-      q = create_query(query).execute.fill(data).close
+      q = create_query(query).bind_params(params).execute.fill(data).close
       #1.upto(data.first.size) do |i|
       #  puts q.column_name(i)
       #end
       data
+    end
+    
+    def execute(query, params = [])
+      create_query(query).bind_params(params).execute.close
+    end
+    
+    # TODO: /csp/docbook/DocBook.UI.Page.cls?KEY=RSQL_variables
+    # Somehow, I should extract from Cache %ROWCOUNT and %ROWID
+    def affected_rows
+      query("select %ROWCOUNT")
+    end
+    
+    def insert_id
+      0
     end
   end
   
@@ -382,11 +398,11 @@ module Intersys
       
       def [](index)
         return @list[index] if @loaded
-        intersys_call("GetAt", index.to_s)
+        intersys_call("GetAt", (index+1).to_s)
       end
       
       def each
-        1.upto(count) do |i|
+        0.upto(count-1) do |i|
           yield self[i]
         end
       end

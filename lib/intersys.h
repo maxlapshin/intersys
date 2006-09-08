@@ -10,6 +10,7 @@
 struct rbDatabase {
 	h_connection connection;
 	h_database database;
+	bool_t closed;
 };
 
 struct rbQuery {
@@ -17,6 +18,8 @@ struct rbQuery {
 	bool_t empty;
 	bool_t closed;
 	bool_t executed;
+	int offset;
+	int limit;
 };
 
 struct rbObject {
@@ -92,6 +95,7 @@ VALUE intersys_status_to_s(VALUE self);
 VALUE intersys_base_s_allocate(VALUE klass);
 VALUE intersys_base_initialize(VALUE self, VALUE options);
 VALUE intersys_base_connect(VALUE self, VALUE options);
+VALUE intersys_base_close(VALUE self);
 VALUE intersys_base_start(VALUE self);
 VALUE intersys_base_commit(VALUE self);
 VALUE intersys_base_rollback(VALUE self);
@@ -102,11 +106,17 @@ VALUE intersys_base_level(VALUE self);
 
 VALUE intersys_query_s_allocate(VALUE klass);
 VALUE intersys_query_initialize(VALUE self, VALUE database, VALUE sql_query);
+VALUE intersys_query_bind_params(VALUE self, VALUE params);
 VALUE intersys_query_execute(VALUE self);
 VALUE intersys_query_column_name(VALUE self, VALUE index);
 VALUE intersys_query_get_data(VALUE self, VALUE index);
 VALUE intersys_query_fetch(VALUE self);
+VALUE intersys_query_each(VALUE self);
 VALUE intersys_query_close(VALUE self);
+VALUE intersys_query_set_limit(VALUE self, VALUE limit);
+VALUE intersys_query_get_limit(VALUE self);
+VALUE intersys_query_set_offset(VALUE self, VALUE limit);
+VALUE intersys_query_get_offset(VALUE self);
 
 
 

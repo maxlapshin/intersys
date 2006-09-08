@@ -32,27 +32,27 @@ class ReflectionTest < Test::Unit::TestCase
     @cdef.super = "%Persistent,%Populate,%XML.Adaptor"
     @props = @cdef.properties
 
-    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:Name")
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:Name")
     assert @props << @prop
     @prop.type = "%String"
 
-    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:SSN")
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:SSN")
     assert @props << @prop
     @prop.type = "%String"
 
-    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:Title")
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:Title")
     assert @props << @prop
     @prop.type = "%String"
 
-    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:DOB")
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:DOB")
     assert @props << @prop
     @prop.type = "%String"
     
-    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:Home")
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:Home")
     assert @props << @prop
     @prop.type = "Sample.Address"
     
-    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Person:Business")
+    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:Business")
     assert @props << @prop
     @prop.type = "Sample.Address"
     
@@ -60,5 +60,6 @@ class ReflectionTest < Test::Unit::TestCase
     assert_equal 6, @cdef.properties.size
     #@cdef.save
   end
+  
 end
 

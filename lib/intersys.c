@@ -35,15 +35,22 @@ void Init_intersys_cache() {
 	rb_define_method(cDatabase, "rollback_db_transaction", intersys_base_rollback, 0);
 	rb_define_method(cDatabase, "rollback", intersys_base_rollback, 0);
 	rb_define_method(cDatabase, "level", intersys_base_level, 0);
+	rb_define_method(cDatabase, "close!", intersys_base_close, 0);
 
 	cQuery = rb_define_class_under(mIntersys, "Query", rb_cObject);
 	rb_define_alloc_func(cQuery, intersys_query_s_allocate);
-	rb_define_method(cQuery, "native_initialize", intersys_query_initialize, 2);
+	rb_define_method(cQuery, "initialize", intersys_query_initialize, 2);
+	rb_define_method(cQuery, "bind_params", intersys_query_bind_params, 1);
 	rb_define_method(cQuery, "execute", intersys_query_execute, 0);
 	rb_define_method(cQuery, "fetch", intersys_query_fetch, 0);
+	rb_define_method(cQuery, "each", intersys_query_each, 0);
 	rb_define_method(cQuery, "column_name", intersys_query_column_name, 1);
 	rb_define_method(cQuery, "get_data", intersys_query_get_data, 1);
 	rb_define_method(cQuery, "close", intersys_query_close, 0);
+	rb_define_method(cQuery, "limit", intersys_query_get_limit, 0);
+	rb_define_method(cQuery, "limit=", intersys_query_set_limit, 1);
+	rb_define_method(cQuery, "offset", intersys_query_get_offset, 0);
+	rb_define_method(cQuery, "offset=", intersys_query_set_offset, 1);
 
 	cObject = rb_define_class_under(mIntersys, "Object", rb_cObject);
 	rb_define_alloc_func(cObject, intersys_object_s_allocate);

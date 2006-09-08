@@ -43,4 +43,9 @@ class QueryTest < Test::Unit::TestCase
     assert @db.query("select %Id,name,DOB1 from sample.person")
     @db.rollback
   end
+
+  def test_limit_offset
+    @db = Intersys::Database.new({})
+    assert @db.query("select * from sample.person limit 4 offset 2")
+  end
 end

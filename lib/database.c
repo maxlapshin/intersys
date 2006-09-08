@@ -1,8 +1,15 @@
 #include "intersys.h"
 
-void intersys_base_free(struct rbDatabase* base) {
+
+static void intersys_base_real_close(struct rbDatabase* base) {
+	if(base->closed) return;
+	base->closed = 1;
 	RUN(cbind_free_db(base->database));
 	RUN(cbind_free_conn(base->connection));
+}
+
+void intersys_base_free(struct rbDatabase* base) {
+	intersys_base_real_close(base);
 	free(base);
 }
 
@@ -32,6 +39,7 @@ VALUE intersys_base_connect(VALUE self, VALUE options) {
 	char conn_str[256];
 	wchar_t w_conn_str[256];
 	int size;
+	bool_t is_uni;
 
 	VALUE host, port, user, password, namespace, timeout;
 
@@ -58,8 +66,20 @@ VALUE intersys_base_connect(VALUE self, VALUE options) {
 	RUN(cbind_alloc_conn(w_conn_str, WCHARSTR(user), WCHARSTR(password),
 		FIX2INT(timeout), &base->connection));
 	RUN(cbind_alloc_db(base->connection, &base->database));
+	RUN(cbind_is_uni_srv(base->database, &is_uni));
+	if(!is_uni) {
+		rb_warn("Warning! Cache database is not in Unicode mode. Perhaps, everything will fail working. In this case contact max@maxidoors.ru");
+	}
 	return self;
 }
+
+VALUE intersys_base_close(VALUE self) {
+	struct rbDatabase* base;
+	Data_Get_Struct(self, struct rbDatabase, base);
+	intersys_base_real_close(base);
+	return Qtrue;
+}
+
 
 VALUE intersys_base_start(VALUE self) {
 	struct rbDatabase* base;

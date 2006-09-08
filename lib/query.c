@@ -31,8 +31,97 @@ VALUE intersys_query_initialize(VALUE self, VALUE database, VALUE sql_query) {
 	int sql_code;
 	Data_Get_Struct(self, struct rbQuery, query);
 	Data_Get_Struct(database, struct rbDatabase, base);
+	rb_iv_set(self, "@database", database);
+	query->limit = -1;
 	RUN(cbind_alloc_query(base->database, &query->query));
-	RUN(cbind_prepare_gen_query(query->query, WCHARSTR(sql_query), &sql_code));
+	RUN(cbind_prepare_gen_query(query->query, WCHARSTR(TOWCHAR(sql_query)), &sql_code));
+	return self;
+}
+
+static void query_bind_one_param(h_query query, int index, VALUE obj) {
+	int sql_type;
+    RUN(cbind_query_get_par_sql_type(query, index, &sql_type));
+
+    switch (sql_type) {
+        case SQL_CHAR:
+        case SQL_VARCHAR:
+        case SQL_LONGVARCHAR: {
+			VALUE str = rb_funcall(obj, rb_intern("to_s"), 0);
+            RUN(cbind_query_set_mb_str_par(query, index, STR(str), LEN(str)));
+            break;
+        }
+        case SQL_BINARY:
+        case SQL_LONGVARBINARY:
+        case SQL_VARBINARY: {
+			VALUE str = rb_funcall(obj, rb_intern("to_s"), 0);
+            RUN(cbind_query_set_bin_par(query, index, STR(str), LEN(str)));
+            break;
+        }
+        case SQL_TINYINT:
+        case SQL_SMALLINT:
+        case SQL_INTEGER:
+        case SQL_BIGINT:
+        case SQL_BIT:
+        {
+			VALUE num = rb_funcall(obj, rb_intern("to_i"), 0);
+            RUN(cbind_query_set_int_par(query, index, NUM2INT(num)));
+            break;
+        }
+        case SQL_FLOAT:
+        case SQL_DOUBLE:
+        case SQL_REAL:
+        case SQL_NUMERIC:
+        case SQL_DECIMAL:
+        {
+			VALUE f = rb_funcall(obj, rb_intern("to_f"), 0);
+            RUN(cbind_query_set_double_par(query, index, RFLOAT(f)->value));
+            break;
+        }
+        case SQL_TIME:
+        {
+			int hour = NUM2INT(CALL(obj, "hour"));
+			int minute = NUM2INT(CALL(obj, "min"));
+			int second = NUM2INT(CALL(obj, "sec"));
+			RUN(cbind_query_set_time_par(query, index, hour, minute, second));
+            break;
+        }
+        case SQL_DATE:
+        {
+			int year = NUM2INT(CALL(obj, "year"));
+			int month = NUM2INT(CALL(obj, "month"));
+			int day = NUM2INT(CALL(obj, "day"));
+			RUN(cbind_query_set_date_par(query, index, year, month, day));
+            break;
+        }
+        case SQL_TIMESTAMP:
+        {
+			int year = NUM2INT(CALL(obj, "year"));
+			int month = NUM2INT(CALL(obj, "month"));
+			int day = NUM2INT(CALL(obj, "day"));
+			int hour = NUM2INT(CALL(obj, "hour"));
+			int minute = NUM2INT(CALL(obj, "min"));
+			int second = NUM2INT(CALL(obj, "sec"));
+			int fraction = 0;
+		  	RUN(cbind_query_set_timestamp_par(query, index, 
+					year, month, day, hour, minute, second, fraction));
+            break;
+        }
+
+        default:
+            rb_raise(cMarshallError, "unknown sql type %d for parameter N %d", sql_type, index);
+    }
+}
+
+
+VALUE intersys_query_bind_params(VALUE self, VALUE params) {
+	int i;
+	struct rbQuery* query;
+	Check_Type(params, T_ARRAY);
+	Data_Get_Struct(self, struct rbQuery, query);
+
+	for(i = 0; i < RARRAY(params)->len; i++) {
+		query_bind_one_param(query->query, i, RARRAY(params)->ptr[i]);
+	}
 	return self;
 }
 
@@ -46,6 +135,7 @@ VALUE intersys_query_execute(VALUE self) {
 	query->executed = 1;
 	return self;
 }
+
 
 VALUE intersys_query_get_data(VALUE self, VALUE index) {
 	struct rbQuery* query;
@@ -129,7 +219,7 @@ VALUE intersys_query_column_name(VALUE self, VALUE i) {
 
 VALUE intersys_query_fetch(VALUE self) {
 	struct rbQuery* query;
-	VALUE data;
+	VALUE data = Qnil;
 	Data_Get_Struct(self, struct rbQuery, query);
 	int num_cols = 0;
 	int i = 0;
@@ -153,13 +243,59 @@ VALUE intersys_query_fetch(VALUE self) {
 	for(i = 0; i < num_cols; i++) {
 		rb_ary_push(data, rb_funcall(self, rb_intern("get_data"), 1, INT2FIX(i+1)));
 	}
-	rb_funcall(self, rb_intern("close"), 0);
 	return data;
 }
+
+
+VALUE intersys_query_each(VALUE self) {
+	struct rbQuery* query;
+	int i;
+	Data_Get_Struct(self, struct rbQuery, query);
+	if(query->offset > 0) {
+		RUN(cbind_query_skip(query->query, query->offset));
+	}
+	for(i = query->offset; i < query->offset + query->limit; i++) {
+		VALUE row = intersys_query_fetch(self);
+		if(row == Qnil || RARRAY(row)->len == 0) {
+			break;
+		}
+		rb_yield(row);
+	}
+	query_close(query);
+	return self;
+}
+
+
 
 VALUE intersys_query_close(VALUE self) {
 	struct rbQuery* query;
 	Data_Get_Struct(self, struct rbQuery, query);
 	query_close(query);
 	return self;
+}
+
+
+VALUE intersys_query_set_limit(VALUE self, VALUE limit) {
+	struct rbQuery* query;
+	Data_Get_Struct(self, struct rbQuery, query);
+	query->limit = NUM2INT(rb_funcall(limit, rb_intern("to_i"), 0));
+	return limit;
+}
+VALUE intersys_query_get_limit(VALUE self) {
+	struct rbQuery* query;
+	Data_Get_Struct(self, struct rbQuery, query);
+	return INT2FIX(query->limit);
+}
+
+VALUE intersys_query_set_offset(VALUE self, VALUE offset) {
+	struct rbQuery* query;
+	Data_Get_Struct(self, struct rbQuery, query);
+	query->offset = NUM2INT(rb_funcall(offset, rb_intern("to_i"), 0));
+	return offset;
+}
+
+VALUE intersys_query_get_offset(VALUE self) {
+	struct rbQuery* query;
+	Data_Get_Struct(self, struct rbQuery, query);
+	return INT2FIX(query->offset);
 }
