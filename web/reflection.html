@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+<title>Intersys Caché database driver — reflection features</title>
+
+<link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+</head>
+<body>
+
+<div id="page">
+
+<div id="header">
+
+		<ul>
+		<li class="page_item"><a href="http://intersys.rubyforge.org/" title="Intersys driver project page">Intersys project page</a></li>
+		<li class="page_item"><a href="http://rubyforge.org/frs/?group_id=2142" title="Download latest">Download latest</a></li>
+		<li class="page_item"><a href="http://svn.maxidoors.ru/cache-ruby/trunk" title="Browse code in SVN">Browse code in SVN</a></li>
+		</ul>		
+
+		<h1><a href="http://maxidoors.ru/">Max&nbsp;&nbsp;Lapshin</a></h1>
+</div>
+
+	<div id="content">
+				
+  	
+		<div class="navigation">
+			<div class="alignleft"><a href="/doc/">Browse rdoc documentation</a></div>
+			<div class="alignright"><a href="mailto:max@maxidoors.ru">Contact author</a></div>
+		</div>
+	
+		<div class="post">
+			<h2>Reflection features of <code>intersys</code> driver</h2>
+	
+			<div class="entrytext">
+				<p><strong>Explanation:</strong> Caché provides rather interesting abilities to introspect
+					classes in runtime, examine their structure and change them. Let's look, what support
+					for this functionality provides <code>intersys</code> driver.
+				</p>
+				<p><strong>Reading:</strong>
+					Each instance of <code>Intersys::Object</code> and <code>Intersys::Object</code> itself
+					has methods: <code>intersys_properties</code>, <code>intersys_methods</code>.
+					
+					It's a pity, but using <code>intersys_methods</code> show only self method of class, without
+					inherrited. So, there is a very slow method <code>all_methods</code>, that runs through the
+					tree of inherritance and collects information about all methods.
+					
+					You can get a nice information, using <code>Person.intersys_description</code>. It show something like:
+					<pre><code>
+class User.Person { 
+	%Library.Status %1Check(%Library.String id = "", %Library.Boolean lockonly = 0);
+	undefined %AcquireLock
+	%Library.Boolean %BMEBuilt(out %Library.String bmeName);
+	%Library.Status %BuildIndices(%Library.List idxlist = "", %Library.Boolean autoPurge = 0, %Library.Boolean lockExtent = 0);
+	%Library.Status %CheckUnique(%Library.List idxlist = "");
+	%Library.Status %Delete(%Library.Binary oid = "", %Library.Integer concurrency = -1);
+	undefined %DeleteData
+	%Library.Status %DeleteExtent(%Library.Integer concurrency = -1, out %Library.String deletecount, out %Library.String instancecount);
+	%Library.Status %DeleteId(%Library.String id, %Library.Integer concurrency = -1);
+	%Library.Status %DowngradeConcurrency(%Library.Integer concurrency = 0);
+	%Library.Boolean %Exists(%Library.Binary oid = "");
+	%Library.Boolean %ExistsId(%Library.String id);
+	%Library.String %GUID(%Library.Binary oid);
+	%Library.String %GUIDSet(%Library.Binary oid, %Library.String guid = "");
+	%Library.Integer %GetLock(%Library.String id, %Library.Boolean shared = 0);
+	%Library.Status %GetSwizzleObject(%Library.Integer force = 0, out %Library.Binary oid);
+	%Library.String %Id();
+	undefined %IdSet
+	%Library.Status %KillExtent();
+};
+					</code></pre>
+					
+					Look at <code>undefined %DeleteData</code>. Sometimes, <code>intersys</code> cannot get information about
+					some methods. Perhaps, You will not be able to call them.
+				</p>
+	
+					
+<p class="postmetadata alt">
+	Standart disclaimer: no warranty. I'm not responsible for any damage (direct or not), that can be made because
+	of using this project.
+</p>
+	
+<p class="postmetadata alt">
+	This project <strong>is not supported</strong> by Intersystems. I haven't received any help from them, while doing this extension.
+</p>
+	
+			</div>
+		</div>
+		
+	
+	
+		
+	</div>
+
+	<div id="description">Ruby extensions</div>
+	<div id="sidebar">
+		<ul>
+			<li><h2>Documents</h2>
+				<ul>
+					<li><a href="index.html" title="Main page">Main page</a></li>
+					<li><a href="doc/" title="Documentation">Documentation</a></li>
+					<li><a href="usage.html" title="Usage">Usage</a></li>
+					<li>Reflection</li>
+				</ul>
+			</li>
+		</ul>
+	</div>
+
+
+<hr />
+<div id="footer">
+	<p>
+		Max Lapshin uses <a href="http://ulfpettersson.se/design/modern/">Modern</a> &#8212; designed by <a href="http://ulfpettersson.se/">Ulf Pettersson</a>.
+	</p>
+</div>
+</div>
+
+<!-- Wonderful design by Ulf Pettersson - http://ulfpettersson.se/ -->
+
+		
+</body>
+</html>

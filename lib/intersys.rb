@@ -106,6 +106,44 @@ module Intersys
     end
     
   end
+  
+  module ActiveRecordEmulation
+    def append_features(base)
+      base.extend ClassMethods
+    end
+    
+    module ClassMethods
+      def create(attributes = nil)
+        if attributes.is_a?(Array)
+          attributes.collect { |attr| create(attr) }
+        else
+          object = intersys_call("%New")
+          attributes.each { |att,value| object.send("#{att}=", value) }
+          object.save
+          object
+        end
+      end
+      
+      def exists?(id)
+        exists_id(id)
+      end
+      
+      def find_by_sql(sql)
+        warn "Nop, no find_by_sql in Object interface"
+        nil
+      end
+      
+      def find(*args)
+        if args.size == 1
+          return open(args.first)
+        end
+        warn "No idea, how to implement method find"
+        nil
+      end
+      
+      
+    end
+  end
 
   # Basic class for all classes, through which is performed access to Cache classes
   # For each Cache class must be created ruby class, inherited from Intersys::Object
@@ -204,7 +242,7 @@ module Intersys
           Intersys::Database.new({:user => "_SYSTEM", :password => "SYS", :namespace => "User"}.merge(db_options))
         end
       end
-            
+      
       # This method takes block and executes it between
       # START TRANSACTION and COMMIT TRANSACTION
       #

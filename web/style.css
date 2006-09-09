@@ -22,9 +22,9 @@ Author URI:http://ulfpettersson.se/
 
 /* Begin Typography & Colors */
 body {border-top: 3px solid rgb(221,217,215);
-	font-size: 62.5%; /* Resets 1em to 10px */
+	font-size: 70%; /* Resets 1em to 10px */
 	font-family: Georgia, 'Times New Roman', Serif;
-	color: rgb(102, 102, 102);
+	color: rgb(82, 82, 82);
 	text-align: center;
 	}
 
@@ -38,7 +38,7 @@ a.image {border-bottom: 0;}
 	text-align: left;
 	}
 	
-#header a {z-index: 100;
+#header a, #header span {z-index: 100;
 	margin-top: -3px;
 	border-top: 3px solid rgb(130,135,145);
 	border-left: 1px solid rgb(221,217,215);
@@ -95,7 +95,7 @@ h1, h2, h3, h4 {
 	}
 
 h1 {
-	font-size: 3.8em;
+	font-size: 3.2em;
 	line-height: 0.9em;
 	}	
 	
@@ -204,7 +204,8 @@ h4, li h2 {line-height: 1.2em;
 	}
 	
 code {
-	font: 1.1em 'Courier New', Courier, Fixed;
+	font: 1.1em 'Lucida Console', 'Courier New', Courier, Fixed;
+	color: black;
 	}
 
 acronym, abbr, span.caps
@@ -231,11 +232,6 @@ acronym, abbr, span.caps
 	text-transform: capitalize;
 	}
 	
-#pagestripe {background: rgb(221,217,215); width: 780px; height: 5px; clear: both;
-	}
-	
-#pageblock {display: block; background: rgb(130,135,145); width: 269px; height: 5px; float: right; line-height: 0;
-	}	
 /* End Typography & Colors */
 
 
@@ -248,7 +244,7 @@ body {
 
 #page {
 	margin: 0 auto;
-	width: 780px;
+	width: 920px;
 	}
 	
 #header {
@@ -256,7 +252,7 @@ body {
 	}
 
 #content {
-	width: 419px;
+	width: 600px;
 	margin: 30px 0 0 0;
 	padding: 40px 40px 40px 50px;
 	float: left;
@@ -264,7 +260,7 @@ body {
 	}
 
 #content.single {
-	width: 518px; 
+	width: 600px; 
 	margin: 0; 
 	padding: 70px 130px; 
 	}	
@@ -290,7 +286,7 @@ body {
 	}	
 	
 #footer {
-	width: 510px;
+	width: 900px;
 	clear: both;
 	}
 	
@@ -304,25 +300,14 @@ body {
 	text-align: center;
 	}
 	
-div.columnleft {
-	float: left;
-	width: 285px;
-	padding-right: 33px;	
-	}
-
-div.columnright {
-	float: right;
-	width: 285px;
-	padding-left: 34px;
-}
 /* End Structure */
 
 
 
 /*	Begin Headers */
-#header h1 {background: white url(/header_background.jpg) bottom right no-repeat;
+#header h1 {background: white url(header_background.jpg) bottom right no-repeat;
 	display: block;
-	width: 269px;
+	width: 228px;
 	height: 160px;
 	float: right;
 	margin: 0;	
@@ -330,7 +315,7 @@ div.columnright {
 	}	
 	
 #header h1 a {display: block;
-	width: 239px;
+	width: 200px;
 	height: 80px;
 	margin: 30px 0 0 0;	
 	padding: 37px 15px 0 15px;		
@@ -546,7 +531,7 @@ select {
 /* Begin Sidebar */
 #description, #sidebar {
 	display: block; 
-	margin-left: 511px;
+	margin-left: 692px;
 	padding: 30px;
 	}
 
@@ -606,7 +591,7 @@ acronym, abbr {
 blockquote, blockquote cite {
 	margin: 0px 15px 0 0; 
 	padding: 20px 0px 20px 33px; 
-	background: url(/quote-arial.gif) 0px 15px no-repeat; 
+	background: url(quote-arial.gif) 0px 15px no-repeat; 
 	color: rgb(110,106,103); 
 	font-style: italic; 
 	font-size: 0.9em;}

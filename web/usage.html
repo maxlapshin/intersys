@@ -1,0 +1,200 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+<title>Intersys Caché database driver - usage instruction</title>
+
+<link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+</head>
+<body>
+
+<div id="page">
+
+<div id="header">
+
+		<ul>
+		<li class="page_item"><a href="http://intersys.rubyforge.org/" title="Intersys driver project page">Intersys project page</a></li>
+		<li class="page_item"><a href="http://rubyforge.org/frs/?group_id=2142" title="Download latest">Download latest</a></li>
+		<li class="page_item"><a href="http://svn.maxidoors.ru/cache-ruby/trunk" title="Browse code in SVN">Browse code in SVN</a></li>
+		</ul>		
+
+		<h1><a href="http://maxidoors.ru/">Max&nbsp;&nbsp;Lapshin</a></h1>
+</div>
+
+	<div id="content">
+				
+  	
+		<div class="navigation">
+			<div class="alignleft"><a href="/doc/">Browse rdoc documentation</a></div>
+			<div class="alignright"><a href="mailto:max@maxidoors.ru">Contact author</a></div>
+		</div>
+	
+		<div class="post">
+			<h2>Usage of Caché driver</h2>
+	
+			<div class="entrytext">
+				<p><strong>Object interface:</strong> first, You should create class in Caché. Let's assume, that You
+					create it in namespace Samples and create a Person class.
+					<pre><code>
+Class User.Person Extends (%Persistent, %Populate, %XML.Adaptor) 
+	[ ClassType = persistent, SqlTableName = persons ]
+{
+	Property Name As %String(MAXLEN = 50) [ SqlFieldName = name ];
+	Property Title As %String(MAXLEN = 50) [ SqlFieldName = title ];
+}
+					</code></pre>
+					
+					Then compile it. Now, You have created Caché class and corresponding to it SQL table. Let's
+					look, how this <code>intersys</code> driver can help You to work with it.
+				</p>
+				<p><strong>Installation:</strong> It is not trivial, because there may be some problems.
+					This driver is known to work under Mac OS X and it can be compiled under Windows/Cygwin, but I have no information
+					about working under Windows or Linux. In any case, feel free to contact me.
+					
+					So, let's look, how should be driver used under Mac OS X. 
+					<pre><code> 
+Macintosh ~:$ gem install intersys
+					</code></pre>
+					
+					If You have installed gcc (it is shipped with XCode) and Caché (in standart place: /Applications/Cache), driver
+					will compile. But it is not enough. Cache under Mac OS X is shipped with very strange version of library 
+					<code>libcbind.dylib</code>. It is not possible to link against this library, so this driver loads it
+					dynamically. As far as path <code>/Applications/Cache/bin</code>, where this library is located, is not
+					in list of standard library paths, it is required to make the following:
+					<pre><code>
+Macintosh ~:$ export DYLD_LIBRARY_PATH=/Applications/Cache/bin
+					</code></pre>
+					
+					Ugly? Very ugly, but Intersystems doesn't reply on my requests to fix it.
+				</p>
+				<p>
+					<strong>Initialization:</strong>
+					Let's open new file <code>test.rb</code>. You should <code>require 'intersys'</code> and
+					declare class, named <code>Person</code>, inherited from <code>Intersys::Object</code>.
+					<pre><code>
+require 'intersys'
+class Person < Intersys::Object
+end
+					</code></pre>
+					
+					Now You have proxy class to Caché class <code>User.Person</code>. If You need to change class name, use:
+					<pre><code>
+class List < Intersys::Object
+  prefix "%Library"
+end
+
+class SomeClass < Intersys::Object
+  class_name "%Dictionary.PropertyDefinition"
+end
+					</code></pre>
+					
+					By default, connection to database is established after first call. If you need another settings, rather then default,
+					use:
+					<pre><code>
+class RealProductionClass < Intersys::Object
+  database :hostname => "main_storage.production.com", :username => "real_username", 
+           :password => "very_secret_password", :namespace => "Production", 
+           :host => 6666
+end
+					</code></pre>
+					
+				</p>
+				<p><strong>Working:</strong>
+					Now, You can work with <code>Person</code>
+				<pre><code>
+@person = Person.create :name => "John Smith", :title => "nice guy"
+@id = @person.id
+@person.reload
+@person.name = "Bob Marley"
+@person.save
+@person1 = Person.find(@id)
+puts @person1.name
+=> "Bob Marley"
+				</code></pre>
+				
+				Mention, that transactions are supported:
+				<pre><code>
+Person.database.start
+@person = Person.create
+@id = @person.id
+Person.database.rollback
+puts Person.exists?(@id)
+=> false
+
+Person.transaction do
+  @person = Person.create
+  @person1 = Person.create 
+end
+				</code></pre>	
+				</p>
+				<p><strong>Calling methods:</strong>
+					You've seen, that I'm using <code>@person.save</code> in examples, but it is not declared anywhere.
+					<code>intersys</code> driver has a smart mechanism, that tries to guess, what do you want, if you
+					call an unexistent method.
+					
+					If You call method like <code>name=</code>, it always tries to set propery <code>Name</code> to the
+					corresponding value. If there is no sign «=» in name of the method, than it camelize method name,
+					<code>name</code> becomes <code>Name</code>, <code>sql_table_name</code> becomes <code>SqlTableName</code>.
+					Than driver tries to get property with this name, if it is among defined properties (it is cheched
+					through <a href="reflection.html">mechanism</a>). Than method with camelized name is called,
+					if it fails, method with name + "%" is called. 
+				</p>
+				
+				<p><strong>Data marshalling:</strong>
+					Each Caché method, property and arguments of methods has its inside description. According to this
+					description, data is marshalled and demarshalled.
+					
+					It is important to mention, that all strings are decoded to UTF8 and all binary are treated as string.
+					Ruby uses string without terminating zero, so it is safe to use this string for handling binary data.
+					
+					<code>intersys</code> <strong>does not support passing by reference</strong>. If you require it,
+					contact me. I have idea about implementing it.
+				</p>
+	
+					
+<p class="postmetadata alt">
+	Standart disclaimer: no warranty. I'm not responsible for any damage (direct or not), that can be made because
+	of using this project.
+</p>
+	
+<p class="postmetadata alt">
+	This project <strong>is not supported</strong> by Intersystems. I haven't received any help from them, while doing this extension.
+</p>
+	
+			</div>
+		</div>
+		
+	
+	
+		
+	</div>
+
+	<div id="description">Ruby extensions</div>
+	<div id="sidebar">
+		<ul>
+			<li><h2>Documents</h2>
+				<ul>
+					<li><a href="index.html" title="Main page">Main page</a></li>
+					<li><a href="doc/" title="Documentation">Documentation</a></li>
+					<li>Usage</li>
+					<li><a href="reflection.html" title="Reflection">Reflection</a></li>
+				</ul>
+			</li>
+		</ul>
+	</div>
+
+
+<hr />
+<div id="footer">
+	<p>
+		Max Lapshin uses <a href="http://ulfpettersson.se/design/modern/">Modern</a> &#8212; designed by <a href="http://ulfpettersson.se/">Ulf Pettersson</a>.
+	</p>
+</div>
+</div>
+
+<!-- Wonderful design by Ulf Pettersson - http://ulfpettersson.se/ -->
+
+		
+</body>
+</html>
