@@ -14,5 +14,6 @@ class QueryTest < Test::Unit::TestCase
     assert @cols = @adapter.columns("person")
     assert @cols.last.name
     assert @cols.last.klass
+    
   end
 end

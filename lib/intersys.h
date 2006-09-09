@@ -165,6 +165,7 @@ VALUE intersys_method_extract_retval(VALUE self);
 #define QUERY_RUN(x) {int sql_code = 0; (x); run(sql_code, __FILE__, __LINE__);}
 #define STR(x) (RSTRING(x)->ptr)
 #define LEN(x) (RSTRING(x)->len)
+#define CAPA(x) (RSTRING(x)->aux.capa)
 #define CALL(x, method) (rb_funcall((x), rb_intern(method), 0))
 
 #define WCHARSTR(x) ((wchar_t *)STR(x))
