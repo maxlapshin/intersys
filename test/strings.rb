@@ -3,6 +3,7 @@ require File.dirname(__FILE__) + '/../lib/intersys'
 
 class StringTest < Test::Unit::TestCase
   @@wide_string = "\000\000\000a\000\000\000b\000\000\000c\000\000\000\000"
+  @@wide_string  = "abc".to_wchar
   @@simple_string = "abc"
   def test_from_wchar
     assert_equal @@simple_string, @@wide_string.from_wchar
