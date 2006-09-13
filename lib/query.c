@@ -1,4 +1,6 @@
 #include "intersys.h"
+#ifdef HAVE_SQL_H
+
 #ifdef __CYGWIN__
 #include <windef.h>
 #endif
@@ -299,3 +301,5 @@ VALUE intersys_query_get_offset(VALUE self) {
 	Data_Get_Struct(self, struct rbQuery, query);
 	return INT2FIX(query->offset);
 }
+
+#endif /* HAVE_SQL_H */

@@ -1,7 +1,11 @@
 #include "intersys.h"
 
-VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument;
+VALUE mIntersys, cDatabase, cObject, cDefinition, cProperty, cMethod, cArgument;
 VALUE cTime, cMarshallError, cUnMarshallError, cObjectNotFound, cIntersysException, cStatus;
+
+#ifdef HAVE_SQL_H
+VALUE cQuery;
+#endif
 
 void Init_intersys_cache() {
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
@@ -37,6 +41,7 @@ void Init_intersys_cache() {
 	rb_define_method(cDatabase, "level", intersys_base_level, 0);
 	rb_define_method(cDatabase, "close!", intersys_base_close, 0);
 
+#ifdef HAVE_SQL_H
 	cQuery = rb_define_class_under(mIntersys, "Query", rb_cObject);
 	rb_define_alloc_func(cQuery, intersys_query_s_allocate);
 	rb_define_method(cQuery, "initialize", intersys_query_initialize, 2);
@@ -51,6 +56,7 @@ void Init_intersys_cache() {
 	rb_define_method(cQuery, "limit=", intersys_query_set_limit, 1);
 	rb_define_method(cQuery, "offset", intersys_query_get_offset, 0);
 	rb_define_method(cQuery, "offset=", intersys_query_set_offset, 1);
+#endif
 
 	cObject = rb_define_class_under(mIntersys, "Object", rb_cObject);
 	rb_define_alloc_func(cObject, intersys_object_s_allocate);

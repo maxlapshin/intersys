@@ -13,6 +13,8 @@ struct rbDatabase {
 	bool_t closed;
 };
 
+
+#ifdef HAVE_SQL_H
 struct rbQuery {
 	h_query query;
 	bool_t empty;
@@ -21,6 +23,7 @@ struct rbQuery {
 	int offset;
 	int limit;
 };
+#endif
 
 struct rbObject {
 	h_database database;
@@ -102,6 +105,7 @@ VALUE intersys_base_rollback(VALUE self);
 VALUE intersys_base_level(VALUE self);
 
 
+#ifdef HAVE_SQL_H
 /******* Query functions *******/
 
 VALUE intersys_query_s_allocate(VALUE klass);
@@ -117,7 +121,7 @@ VALUE intersys_query_set_limit(VALUE self, VALUE limit);
 VALUE intersys_query_get_limit(VALUE self);
 VALUE intersys_query_set_offset(VALUE self, VALUE limit);
 VALUE intersys_query_get_offset(VALUE self);
-
+#endif
 
 
 /******* Object functions *******/

@@ -34,11 +34,15 @@ end
 def link_flags
   " "+(library_locations.map { |place| "-L"+place} + ["-Wall"]).join(" ")
 end
-find_header "c_api.h", *include_locations
-find_header "sql.h", *include_locations
-find_header "sqlext.h", *include_locations
 $CFLAGS << include_flags
 $LDFLAGS << link_flags
+
+have_header "c_api.h"
+have_header "sql.h"
+have_header "sqlext.h"
+#find_header "c_api.h", *include_locations
+#find_header "sql.h", *include_locations
+#find_header "sqlext.h", *include_locations
 #$LDFLAGS << "-Wl,-no-export-libs,cbind.lib"
 find_library "cbind", "cbind_alloc_db",*library_locations
 create_makefile 'intersys_cache'
