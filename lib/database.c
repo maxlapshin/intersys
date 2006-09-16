@@ -15,7 +15,7 @@ void intersys_base_free(struct rbDatabase* base) {
 
 VALUE intersys_base_s_allocate(VALUE klass) {
 	struct rbDatabase* intersys_base = ALLOC(struct rbDatabase);
-	bzero(intersys_base, sizeof(struct rbDatabase));
+	memset(intersys_base, 0, sizeof(struct rbDatabase));
 	return Data_Wrap_Struct(klass, 0, intersys_base_free, intersys_base);
 }
 

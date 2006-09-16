@@ -1,22 +1,23 @@
 #include "intersys.h"
 
 VALUE string_to_wchar(VALUE self) {
-	wchar_t w_chars[LEN(self) + 1];
+	VALUE result;
 	int size;
-	RUN(cbind_utf8_to_uni(STR(self), (byte_size_t)LEN(self), w_chars, (char_size_t)sizeof(w_chars), &size));
-	w_chars[size] = 0;
-	return rb_str_new((char *)w_chars, (size+1)*sizeof(wchar_t));
+	result = rb_str_buf_new((LEN(self)+1)*sizeof(wchar_t));
+	RUN(cbind_utf8_to_uni(STR(self), (byte_size_t)LEN(self), WCHARSTR(result), (char_size_t)sizeof(wchar_t)*LEN(self), &size));
+	WCHARSTR(result)[size] = 0;
+	return result;
 }
 
 VALUE string_from_wchar(VALUE self) {
-	char chars[LEN(self) + 1];
-	bzero(chars, sizeof(chars));
+	VALUE result;
 	int size;
 	if(LEN(self) == 0 || !STR(self)) {
 		return rb_str_new2("");
 	}
-    RUN(cbind_uni_to_utf8(WCHARSTR(self), wcslen(WCHARSTR(self)), chars, sizeof(chars), &size));
-	return rb_str_new(chars, size);
+	result = rb_str_buf_new(LEN(self));
+    RUN(cbind_uni_to_utf8(WCHARSTR(self), wcslen(WCHARSTR(self)), STR(result), LEN(result), &size));
+	return result;
 }
 
 
@@ -37,7 +38,7 @@ VALUE wcstr_new(const wchar_t *w_str, const char_size_t len) {
 	capa = (int)(len + 1)*sizeof(wchar_t);
 	
     result = rb_str_buf_new(capa);
-	bzero(STR(result) + size, capa-size);
+	memset(STR(result) + size, 0, capa-size);
 	rb_str_buf_cat(result, (char *)w_str, size);
 
 	rb_str_freeze(result);
@@ -58,7 +59,7 @@ static void intersys_status_mark(struct rbStatus* status) {
 
 VALUE intersys_status_s_allocate(VALUE klass) {
 	struct rbStatus* status = ALLOC(struct rbStatus);
-	bzero(status, sizeof(struct rbStatus));
+	memset(status, 0, sizeof(struct rbStatus));
 	return Data_Wrap_Struct(klass, intersys_status_mark, 0, status);
 }
 

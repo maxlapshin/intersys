@@ -15,7 +15,7 @@ static void intersys_object_mark(struct rbObject* object) {
 
 VALUE intersys_object_s_allocate(VALUE klass) {
 	struct rbObject* object = ALLOC(struct rbObject);
-	bzero(object, sizeof(struct rbObject));
+	memset(object, 0, sizeof(struct rbObject));
 	return Data_Wrap_Struct(klass, intersys_object_mark, intersys_object_free, object);
 }
 

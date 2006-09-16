@@ -7,6 +7,13 @@
 #include <time.h>
 #include <c_api.h>
 
+#ifdef _WIN32
+#ifndef _WCHAR_T_DEFINED
+typedef unsigned short wchar_t;
+#define _WCHAR_T_DEFINED
+#endif
+#endif /* WIN32 */
+
 struct rbDatabase {
 	h_connection connection;
 	h_database database;

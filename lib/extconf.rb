@@ -18,7 +18,8 @@ MACOS = RUBY_PLATFORM.match(/darwin/)
 @cache_placements = ["/home/max/cache", "/Applications/Cache", "/cygdrive/c/Progra~1/Cache", "/cygdrive/c/Cachesys", "C:/Cachesys"]
 
 def locations(suffix)
-  @cache_placements.map {|place| place + suffix}.map{|place| place.split("/").join(WIN32 ? "\\" : "/") }
+  # .map{|place| place.split("/").join(WIN32 ? "\\" : "/")}
+  @cache_placements.map {|place| place + suffix }
 end                                                                                             
 
 def include_locations
@@ -35,23 +36,27 @@ def include_flags
 end
 
 if WIN32
-  $CFLAGS << ' -I"C:\\Program Files\\Microsoft Visual Studio .NET 2003\\Vc7\\PlatformSDK\\Include" '
-  $CFLAGS << ' -I"C:\\Program Files\\Microsoft Visual Studio .NET 2003\\Vc7\\include" '
-  $LDFLAGS << ' -libpath:"C:\\CacheSys\\dev\\cpp\\lib" '
-  $LDFLAGS << ' -libpath:"C:\\Program Files\\Microsoft Visual Studio .NET 2003\\Vc7\\lib" '
-  $LDFLAGS << ' -libpath:"C:\\Program Files\\Microsoft Visual Studio .NET 2003\\Vc7\PlatformSDK\\Lib" '
+  $CFLAGS << ' -I"C:\\Program Files\\Microsoft Platform SDK\\Include\\crt" '
+  $CFLAGS << ' -I"C:\\Program Files\\Microsoft Platform SDK\\Include" '
+  $CFLAGS << ' -I"C:\\Program Files\\Microsoft Visual Studio 8\\VC\\include" -D_WIN32 '
+  $LDFLAGS << ' /link -libpath:"C:/CacheSys/dev/cpp/lib" '
+  $LDFLAGS << ' -libpath:"C:/Program Files/Microsoft Visual Studio 8/VC/lib" '
+  $LDFLAGS << ' -libpath:"C:/Program Files/Microsoft Platform SDK/Lib" '
 end
 
 
 def link_flags
-  " "+(library_locations.map { |place| "-L"+place} + ["-Wall"]).join(" ")
+  " "+(library_locations.map { |place| WIN32 ? "-libpath:\"#{place}\"" :  ("-L"+place)} + ["-Wall"]).join(" ")
 end
 
 $CFLAGS << include_flags
 $LDFLAGS << link_flags
 
 have_header "c_api.h"
-have_header "sql.h"
+unless have_header "sql.h" 
+  $CFLAGS << ' -Isql_include '
+  have_header "sql.h"
+end
 have_header "sqlext.h"
 
 unless MACOS
@@ -60,4 +65,5 @@ end
 
 
 create_makefile 'intersys_cache'
+
 

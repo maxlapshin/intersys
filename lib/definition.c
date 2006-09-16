@@ -28,7 +28,7 @@ static void intersys_definition_mark(struct rbDefinition* definition) {
 
 VALUE intersys_definition_s_allocate(VALUE klass) {
 	struct rbDefinition* definition = ALLOC(struct rbDefinition);
-	bzero(definition, sizeof(struct rbDefinition));
+	memset(definition, 0, sizeof(struct rbDefinition));
 	definition->object = Qnil;
 	return Data_Wrap_Struct(klass, intersys_definition_mark, intersys_definition_free, definition);
 }
@@ -243,14 +243,15 @@ static VALUE extract_next_dlist_elem(char *dlist, int* elem_size) {
 VALUE intersys_method_call(VALUE self, VALUE args) {
 	struct rbDefinition* method;
 	int i;
+	VALUE database = rb_iv_get(self, "@database");
+	VALUE class_name = rb_iv_get(self, "@class_name");
+	VALUE name = rb_iv_get(self, "@name");
+
 	Check_Type(args, T_ARRAY);
 	Data_Get_Struct(self, struct rbDefinition, method);
 	if(RARRAY(args)->len > method->num_args) {
 		rb_raise(rb_eArgError, "wrong number of arguments (%d for %d)", RARRAY(args)->len, method->num_args);
 	}
-	VALUE database = rb_iv_get(self, "@database");
-	VALUE class_name = rb_iv_get(self, "@class_name");
-	VALUE name = rb_iv_get(self, "@name");
 	
 	RUN(cbind_reset_args(method->database));
 	RUN(cbind_mtd_rewind_args(method->def));
@@ -447,7 +448,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			//It is important to add wchar_t to end, because for wcslen we need more than 1 terminating zero.
 			//I don't know exactly, how works wcslen, but I add 4 (sizeof wchar_t) terminating zeroes
 			result = rb_str_buf_new(size + sizeof(wchar_t));
-			bzero(STR(result) + size, sizeof(wchar_t));
+			memset(STR(result) + size, 0, sizeof(wchar_t));
             RUN(cbind_get_arg_as_str(method->database, method->passed_args, STR(result), size, CPP_UNICODE, &size, &is_null));
 			LEN(result) = size;
 			return FROMWCHAR(result);
@@ -495,8 +496,8 @@ VALUE intersys_method_extract_retval(VALUE self) {
 
 VALUE intersys_argument_marshall_dlist_elem(VALUE self, VALUE elem) {
 	struct rbDefinition* argument;
-	Data_Get_Struct(self, struct rbDefinition, argument);
 	int elem_size;
+	Data_Get_Struct(self, struct rbDefinition, argument);
 	
 	switch(TYPE(elem)) {
 		case T_NIL: {
