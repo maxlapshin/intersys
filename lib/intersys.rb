@@ -11,7 +11,8 @@ module Intersys
   extend DL::Importable
   begin
     dlload("libcbind.dylib")
-  rescue
+  rescue StandardError => e
+    puts e
   end
   
   require File.dirname(__FILE__) + '/intersys_cache'
