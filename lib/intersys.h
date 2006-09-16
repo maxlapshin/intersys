@@ -68,6 +68,10 @@ struct rbStatus {
 	VALUE message;
 };
 
+struct rbGlobal {
+	VALUE name;	
+};
+
 enum { D_PROPERTY, D_METHOD, D_ARGUMENT};
 
 enum {
@@ -75,7 +79,8 @@ enum {
 };
 
 
-extern VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, cMethod, cArgument, cObjectNotFound, cStatus;
+extern VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, 
+	cMethod, cArgument, cObjectNotFound, cStatus, cGlobal;
 extern VALUE cTime, cMarshallError, cUnMarshallError;
 
 
@@ -161,7 +166,14 @@ VALUE intersys_argument_set(VALUE self, VALUE obj);
 VALUE intersys_method_extract_retval(VALUE self);
 
 
+/******* Globals *******/
 
+VALUE intersys_global_s_allocate(VALUE klass);
+VALUE intersys_global_initialize(VALUE self, VALUE name);
+VALUE intersys_global_get(int argc, VALUE* argv, VALUE self);
+VALUE intersys_global_set(int argc, VALUE* argv, VALUE self);
+VALUE intersys_global_delete(int argc, VALUE* argv, VALUE self);
+VALUE intersys_global_name(VALUE self);
 
 
 

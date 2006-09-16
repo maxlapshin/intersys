@@ -1,6 +1,6 @@
 #include "intersys.h"
 
-VALUE mIntersys, cDatabase, cObject, cDefinition, cProperty, cMethod, cArgument;
+VALUE mIntersys, cDatabase, cObject, cDefinition, cProperty, cMethod, cArgument, cGlobal;
 VALUE cTime, cMarshallError, cUnMarshallError, cObjectNotFound, cIntersysException, cStatus;
 
 #ifdef HAVE_SQL_H
@@ -89,6 +89,7 @@ void Init_intersys_cache() {
 	cArgument = rb_define_class_under(mIntersys, "Argument", cDefinition);
 	rb_define_method(cArgument, "initialize", intersys_argument_initialize, 4);
 	rb_define_method(cArgument, "default", intersys_argument_default_value, 0);
+	rb_define_method(cArgument, "by_ref?", intersys_argument_is_by_ref, 0);
 	rb_define_method(cArgument, "marshall_dlist_element", intersys_argument_marshall_dlist_elem, 1);
 	rb_define_method(cArgument, "marshall_dlist", intersys_argument_marshall_dlist, 1);
 	/*
@@ -101,6 +102,13 @@ void Init_intersys_cache() {
     "end\n" \
   	"end");
 	*/
-	rb_define_method(cArgument, "by_ref?", intersys_argument_is_by_ref, 0);
+	
+	cGlobal = rb_define_class_under(mIntersys, "Global", rb_cObject);
+	rb_define_alloc_func(cGlobal, intersys_global_s_allocate);
+	rb_define_method(cGlobal, "initialize", intersys_global_initialize, 1);
+	rb_define_method(cGlobal, "[]=", intersys_global_set, -1);
+	rb_define_method(cGlobal, "[]", intersys_global_get, -1);
+	rb_define_method(cGlobal, "delete", intersys_global_delete, -1);
+	rb_define_method(cGlobal, "name", intersys_global_name, 0);
 }
 
