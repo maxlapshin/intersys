@@ -7,7 +7,7 @@ require 'rake/contrib/rubyforgepublisher'
 #require 'lib/intersys'
 
 PKG_NAME = "intersys"
-PKG_VERSION = "0.1"
+PKG_VERSION = "0.2"
 PKG_AUTHOR = "Max Lapshin"
 PKG_EMAIL = "max@maxidoors.ru"
 PKG_HOMEPAGE = "http://maxidoors.ru/"
@@ -31,12 +31,12 @@ spec = Gem::Specification.new do |s|
   s.require_path = "lib"
   s.rubyforge_project = PKG_NAME
   s.files = FileList["{bin,test,lib}/**/*"].exclude("rdoc").exclude(".svn").exclude(".DS_Store").exclude("**/*.o").exclude("**/*.bundle").exclude("**/*.log").to_a
-	s.files << ["Rakefile", "README", "init.rb"]
+  s.files << ["Rakefile", "README", "init.rb"]
   s.test_files = FileList["{test}/**/*test.rb"].to_a
   s.autorequire = "intersys"
   s.has_rdoc = true
   s.extra_rdoc_files = ["README"]
-	s.rdoc_options = PKG_RDOC_OPTS
+  s.rdoc_options = PKG_RDOC_OPTS
   s.add_dependency("activesupport", ">= 1.0")
   s.extensions << 'lib/extconf.rb'
 end
