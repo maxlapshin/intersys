@@ -1,0 +1,4 @@
+LIBRARY	"Intersys_Cache"
+
+EXPORTS
+	Init_intersys_cache
