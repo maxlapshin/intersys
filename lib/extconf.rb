@@ -5,6 +5,12 @@ require "mkmf"
 WIN32 = RUBY_PLATFORM.match(/mswin/)
 MACOS = RUBY_PLATFORM.match(/darwin/)
 
+if WIN32 then
+  raise 'Use VS2005 solution from win32 directory to build this library'
+  exit
+end
+  
+
 CONFIG["CC"] = "gcc -g" unless WIN32
 
 
