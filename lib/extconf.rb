@@ -41,7 +41,7 @@ if WIN32
   $CFLAGS << ' -I"C:\\Program Files\\Microsoft Platform SDK\\Include" '
   $CFLAGS << ' -I"C:\\Program Files\\Microsoft Visual Studio 8\\VC\\include" -D_WIN32 '
   
-  $LDFLAGS << ' cbind.lib '
+  $LDFLAGS << ' cbind.lib /dll /out:intersys_cache.dll'
   
   VCINSTALLDIR = ENV["VCINSTALLDIR"]
   
