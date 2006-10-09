@@ -6,6 +6,8 @@ VALUE string_to_wchar(VALUE self) {
 	result = rb_str_buf_new((LEN(self)+1)*sizeof(wchar_t));
 	RUN(cbind_utf8_to_uni(STR(self), (byte_size_t)LEN(self), WCHARSTR(result), (char_size_t)sizeof(wchar_t)*LEN(self), &size));
 	WCHARSTR(result)[size] = 0;
+	LEN(result) = (size+1)*sizeof(wchar_t);
+	OBJ_FREEZE(result);
 	return result;
 }
 
@@ -16,7 +18,8 @@ VALUE string_from_wchar(VALUE self) {
 		return rb_str_new2("");
 	}
 	result = rb_str_buf_new(LEN(self));
-    RUN(cbind_uni_to_utf8(WCHARSTR(self), wcslen(WCHARSTR(self)), STR(result), LEN(result), &size));
+   RUN(cbind_uni_to_utf8(WCHARSTR(self), (char_size_t)wcslen(WCHARSTR(self)), STR(result), LEN(self), &size));
+	LEN(result) = size;
 	return result;
 }
 
@@ -37,7 +40,7 @@ VALUE wcstr_new(const wchar_t *w_str, const char_size_t len) {
 	size = (int)(len)*sizeof(wchar_t);
 	capa = (int)(len + 1)*sizeof(wchar_t);
 	
-    result = rb_str_buf_new(capa);
+   result = rb_str_buf_new(capa);
 	memset(STR(result) + size, 0, capa-size);
 	rb_str_buf_cat(result, (char *)w_str, size);
 

@@ -2,7 +2,10 @@ This is driver for post-relational database Cache, created by Intersystems (http
 
 Author: Max Lapshin <max@maxidoors.ru>
 Weblog: http://maxidoors.ru
-Home page of the project: http://rubyforge.org/projects/intersys
+Home page of the project: http://intersys.rubyforge.org/
+
+Credits: 
+thanks to Ivan Krasin for fixes with building under win32
 
 Currently it supports Object access to Cache and preliminary version of SQL.
 

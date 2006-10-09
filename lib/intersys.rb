@@ -16,9 +16,9 @@ module Intersys
   end
   
   require File.dirname(__FILE__) + '/intersys_cache'
-  require 'object'
-  require 'callable'
-  require 'reflection'
+  require File.dirname(__FILE__) + '/object'
+  require File.dirname(__FILE__) + '/callable'
+  require File.dirname(__FILE__) + '/reflection'
 
 
   class Method
