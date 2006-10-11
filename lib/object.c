@@ -2,10 +2,10 @@
 
 
 static void intersys_object_free(struct rbObject* object) {
-	if (object->oref) {
+	if (object->oref > 0) {
 		RUN(cbind_object_release(object->database, object->oref));
 	}
-	free(object);
+	xfree(object);
 }
 
 static void intersys_object_mark(struct rbObject* object) {

@@ -10,7 +10,7 @@ static void intersys_base_real_close(struct rbDatabase* base) {
 
 void intersys_base_free(struct rbDatabase* base) {
 	intersys_base_real_close(base);
-	free(base);
+	xfree(base);
 }
 
 VALUE intersys_base_s_allocate(VALUE klass) {
@@ -85,21 +85,21 @@ VALUE intersys_base_start(VALUE self) {
 	struct rbDatabase* base;
 	Data_Get_Struct(self, struct rbDatabase, base);
 	RUN(cbind_tstart(base->database));
-	return Qtrue;
+	return self;
 }
 
 VALUE intersys_base_commit(VALUE self) {
 	struct rbDatabase* base;
 	Data_Get_Struct(self, struct rbDatabase, base);
 	RUN(cbind_tcommit(base->database));
-	return Qtrue;
+	return self;
 }
 
 VALUE intersys_base_rollback(VALUE self) {
 	struct rbDatabase* base;
 	Data_Get_Struct(self, struct rbDatabase, base);
 	RUN(cbind_trollback(base->database));
-	return Qtrue;
+	return self;
 }
 
 VALUE intersys_base_level(VALUE self) {

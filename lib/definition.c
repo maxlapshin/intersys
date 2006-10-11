@@ -16,7 +16,7 @@ static void intersys_definition_free(struct rbDefinition* definition) {
 		}
 	}
 	RUN(cbind_free_class_def(definition->database, definition->cl_def));
-	free(definition);
+	xfree(definition);
 }
 
 static void intersys_definition_mark(struct rbDefinition* definition) {

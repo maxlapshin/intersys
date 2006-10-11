@@ -25,7 +25,7 @@ class QueryTest < Test::Unit::TestCase
     assert @p = Person.intersys_call("%New")
     @p.name = "Test user"
     assert @p.save
-    puts @p.id
+    #puts @p.id
     assert @p.destroy
     Person.database.rollback
   end

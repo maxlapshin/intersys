@@ -18,7 +18,7 @@ static void query_close(struct rbQuery* query) {
 void intersys_query_free(struct rbQuery* query) {
 	query_close(query);
 	RUN(cbind_free_query(query->query));
-	free(query);
+	xfree(query);
 }
 
 VALUE intersys_query_s_allocate(VALUE klass) {
