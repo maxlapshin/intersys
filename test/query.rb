@@ -7,7 +7,7 @@ end
 
 class QueryTest < Test::Unit::TestCase
   def test_query1
-    return
+    return unless Intersys.const_defined?(:Query)
     @db = Intersys::Database.new({})
 
     Person.populate(100)
@@ -30,12 +30,13 @@ class QueryTest < Test::Unit::TestCase
   end
   
   def test_select
+    return unless Intersys.const_defined?(:Query)
     @db = Intersys::Database.new({})
     assert @db.query("select Id,name,DOB from sample.person")
   end
   
   def test_alter
-    return
+    return unless Intersys.const_defined?(:Query)
     @db = Intersys::Database.new({})
 
     @db.start
@@ -45,6 +46,7 @@ class QueryTest < Test::Unit::TestCase
   end
 
   def test_limit_offset
+    return unless Intersys.const_defined?(:Query)
     @db = Intersys::Database.new({})
     assert @db.query("select * from sample.person limit 4 offset 2")
   end
