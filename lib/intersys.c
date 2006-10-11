@@ -7,9 +7,13 @@ VALUE cTime, cMarshallError, cUnMarshallError, cObjectNotFound, cIntersysExcepti
 VALUE cQuery;
 #endif
 
-static VALUE wchar_t_size(VALUE self) {
-	return INT2FIX(sizeof(wchar_t));
+static VALUE wchar_t_size(VALUE self) {	
+	return INT2FIX(sizeof(wchar_t)); 
 }
+static VALUE wchar_t_size_type(VALUE self) {	
+	return rb_str_new2(sizeof(wchar_t) == 4 ? "L" : sizeof(wchar_t) == 2 ? "s" : "c"); 
+}
+
 
 void Init_intersys_cache() {
 	rb_define_method(rb_cString, "to_wchar", string_to_wchar, 0);
@@ -19,6 +23,8 @@ void Init_intersys_cache() {
 
 	mIntersys = rb_define_module("Intersys");
 	rb_define_singleton_method(mIntersys, "__wchar_t_size", wchar_t_size, 0);
+	rb_define_singleton_method(mIntersys, "__wchar_t_size_type", wchar_t_size, 0);
+	
 	cIntersysException = rb_define_class_under(mIntersys, "IntersysException", rb_eStandardError);
 	cObjectNotFound = rb_define_class_under(mIntersys, "ObjectNotFound", cIntersysException);
 	cMarshallError = rb_define_class_under(mIntersys, "MarshallError", cIntersysException);

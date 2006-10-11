@@ -18,7 +18,7 @@ CONFIG["CC"] = "gcc -g"
 #EOF
 #end
 
-@cache_placements = ["/home/max/cache", "/Applications/Cache", "/cygdrive/c/Progra~1/Cache", "/cygdrive/c/Cachesys"]
+@cache_placements = ["/home/max/cache", "/Applications/Cache"]
 
 def locations(suffix)
   @cache_placements.map {|place| place + suffix }
