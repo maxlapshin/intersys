@@ -10,6 +10,7 @@ class StringTest < Test::Unit::TestCase
   end
 
   def wide_string
+    puts Intersys.__wchar_t_size
     return @@wide_string_be if big_endian?
 	 @@wide_string_le
   end

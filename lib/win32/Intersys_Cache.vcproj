@@ -46,7 +46,7 @@
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				Detect64BitPortabilityProblems="true"
+				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="4"
 			/>
 			<Tool
@@ -91,6 +91,8 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description="move result dll to lib catalog"
+				CommandLine="copy /Y &quot;$(OutDir)\$(ProjectName).dll&quot; &quot;$(ProjectDir)\..\$(ProjectName).dll&quot;"
 			/>
 		</Configuration>
 		<Configuration
