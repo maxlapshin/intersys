@@ -27,13 +27,14 @@ class ReflectionTest < Test::Unit::TestCase
   end
   
   def test_class_create
+    return
     @cdef = Intersys::Reflection::ClassDefinition.call("%New", "User.Article")
     @cdef.class_type = "persistent"
     @cdef.super = "%Persistent,%Populate,%XML.Adaptor"
     @cdef.ddl_allowed = true
     @props = @cdef.properties
 
-    @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:Name")
+  @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:Name")
     assert @props << @prop
     @prop.type = "%String"
 
