@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="8,00"
 	Name="Intersys_Cache"
 	ProjectGUID="{7EB18CA9-79E4-49A3-8C59-FD25504DAD20}"
 	RootNamespace="Intersys_Cache"
@@ -39,7 +39,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\Cachesys\Dev\cpp\include&quot;;&quot;C:\Program Files\ruby\lib\ruby\1.8\i386-mswin32&quot;"
+				AdditionalIncludeDirectories="C:\Program Files\Microsoft Platform SDK\Include;C:\Cachesys\Dev\cpp\include;&quot;C:\ruby\lib\ruby\1.8\i386-mswin32&quot;;&quot;C:\Program Files\ruby\lib\ruby\1.8\i386-mswin32&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;INTERSYS_CACHE_EXPORTS;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -62,7 +62,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="cbind.lib wsock32.lib oldnames.lib msvcrt-ruby18.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\ruby\lib&quot;;&quot;C:\Program Files\Cache\Dev\cpp\lib&quot;"
+				AdditionalLibraryDirectories="&quot;C:\ruby\lib&quot;;&quot;C:\Program Files\ruby\lib&quot;;C:\CacheSys\Dev\cpp\lib;&quot;C:\Program Files\Cache\Dev\cpp\lib&quot;;&quot;C:\Program Files\Microsoft Platform SDK\Lib&quot;"
 				ModuleDefinitionFile="Intersys_Cache.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"

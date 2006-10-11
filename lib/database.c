@@ -41,13 +41,13 @@ VALUE intersys_base_connect(VALUE self, VALUE options) {
 	int size;
 	bool_t is_uni;
 
-	VALUE host, port, user, password, namespace, timeout;
+	VALUE host, port, user, password, cache_namespace, timeout;
 
 	host = connect_get_options(options, "host", "localhost", 0);
-	port = connect_get_options(options, "port", "1973", 0);
-	//port = connect_get_options(options, "port", "1972", 0);
-	//namespace = connect_get_options(options, "namespace", "User", 0);
-	namespace = connect_get_options(options, "namespace", "Samples", 0);
+	//port = connect_get_options(options, "port", "1973", 0);
+	port = connect_get_options(options, "port", "1972", 0);
+	cache_namespace = connect_get_options(options, "namespace", "User", 0);
+	//cache_namespace = connect_get_options(options, "namespace", "Samples", 0);
 
 	user = connect_get_options(options, "user", "_SYSTEM", 1);
 	password = connect_get_options(options, "password", "SYS", 1);
@@ -58,7 +58,7 @@ VALUE intersys_base_connect(VALUE self, VALUE options) {
 
 	Data_Get_Struct(self, struct rbDatabase, base);
 
-	snprintf(conn_str, sizeof(conn_str), "%s[%s]:%s", RSTRING(host)->ptr, RSTRING(port)->ptr, RSTRING(namespace)->ptr);
+	snprintf(conn_str, sizeof(conn_str), "%s[%s]:%s", RSTRING(host)->ptr, RSTRING(port)->ptr, RSTRING(cache_namespace)->ptr);
 
 	RUN(cbind_utf8_to_uni(conn_str, (byte_size_t)strlen(conn_str), w_conn_str, (char_size_t)sizeof(w_conn_str),&size));
 	w_conn_str[size] = 0;
