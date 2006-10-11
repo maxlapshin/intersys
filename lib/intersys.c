@@ -23,7 +23,7 @@ void Init_intersys_cache() {
 
 	mIntersys = rb_define_module("Intersys");
 	rb_define_singleton_method(mIntersys, "__wchar_t_size", wchar_t_size, 0);
-	rb_define_singleton_method(mIntersys, "__wchar_t_size_type", wchar_t_size, 0);
+	rb_define_singleton_method(mIntersys, "__wchar_t_size_type", wchar_t_size_type, 0);
 	
 	cIntersysException = rb_define_class_under(mIntersys, "IntersysException", rb_eStandardError);
 	cObjectNotFound = rb_define_class_under(mIntersys, "ObjectNotFound", cIntersysException);
