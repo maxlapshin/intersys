@@ -30,6 +30,7 @@ class ReflectionTest < Test::Unit::TestCase
     @cdef = Intersys::Reflection::ClassDefinition.call("%New", "User.Article")
     @cdef.class_type = "persistent"
     @cdef.super = "%Persistent,%Populate,%XML.Adaptor"
+    @cdef.ddl_allowed = true
     @props = @cdef.properties
 
     @prop = Intersys::Reflection::PropertyDefinition.intersys_call("%New", "Article:Name")
@@ -58,7 +59,7 @@ class ReflectionTest < Test::Unit::TestCase
     
     assert_equal "User.Article", @cdef.name
     assert_equal 6, @cdef.properties.size
-    #@cdef.save
+    assert @cdef.save
   end
   
 end

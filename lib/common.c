@@ -4,6 +4,7 @@ VALUE string_to_wchar(VALUE self) {
 	VALUE result;
 	int size;
 	result = rb_str_buf_new((LEN(self)+1)*sizeof(wchar_t));
+	memset(STR(result), 0, (LEN(self)+1)*sizeof(wchar_t) + 1);
 	RUN(cbind_utf8_to_uni(STR(self), (byte_size_t)LEN(self), WCHARSTR(result), (char_size_t)sizeof(wchar_t)*LEN(self), &size));
 	WCHARSTR(result)[size] = 0;
 	LEN(result) = (size+1)*sizeof(wchar_t);
@@ -18,7 +19,8 @@ VALUE string_from_wchar(VALUE self) {
 		return rb_str_new2("");
 	}
 	result = rb_str_buf_new(LEN(self));
-   RUN(cbind_uni_to_utf8(WCHARSTR(self), (char_size_t)wcslen(WCHARSTR(self)), STR(result), LEN(self), &size));
+	memset(STR(result), 0, LEN(self) + 1);
+	RUN(cbind_uni_to_utf8(WCHARSTR(self), (char_size_t)wcslen(WCHARSTR(self)), STR(result), LEN(self), &size));
 	LEN(result) = size;
 	return result;
 }

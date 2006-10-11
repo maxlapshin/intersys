@@ -21,6 +21,7 @@ static void intersys_definition_free(struct rbDefinition* definition) {
 
 static void intersys_definition_mark(struct rbDefinition* definition) {
 	rb_gc_mark(definition->class_name);
+	rb_gc_mark(definition->database);
 	if(definition->object != Qnil) {
 		rb_gc_mark(definition->object);
 	}
@@ -145,28 +146,16 @@ VALUE intersys_property_set(VALUE self, VALUE value) {
 
 
 
-VALUE intersys_method_initialize(VALUE self, VALUE r_database, VALUE class_name, VALUE name, VALUE object) {
+VALUE intersys_method_initialize(VALUE self, VALUE database, VALUE class_name, VALUE name, VALUE object) {
 	struct rbDefinition* method;
 	int error;
-	VALUE args[] = {r_database, class_name, name};
+	VALUE args[] = {database, class_name, name};
 	rb_call_super(3, args);
 	
 	
 	Data_Get_Struct(self, struct rbDefinition, method);
 
 	method->type = D_METHOD;
-    RUN(cbind_alloc_mtd_def(&method->def));
-    error = (cbind_get_mtd_def(method->cl_def, method->in_name, method->def));
-	if(error) {
-		rb_raise(rb_eNoMethodError, "No such method %s in Cache class %s", STR(FROMWCSTR(method->in_name)), STR(rb_iv_get(self, "@class_name")));
-	}
-    RUN(cbind_get_mtd_is_func(method->def, &method->is_func));
-    RUN(cbind_get_mtd_cpp_type(method->def, &method->cpp_type));
-    RUN(cbind_get_mtd_cache_type(method->def, &method->cache_type));
-    RUN(cbind_get_mtd_is_cls_mtd(method->def, &method->is_class_method));
-    RUN(cbind_get_mtd_num_args(method->def, &method->num_args));
-    RUN(cbind_get_mtd_args_info(method->def, &method->args_info));
-    RUN(cbind_get_mtd_name(method->def, &method->name));
 	method->object = object;
 	if(rb_obj_is_kind_of(object, cObject)) {
 		struct rbObject* obj;
@@ -175,6 +164,21 @@ VALUE intersys_method_initialize(VALUE self, VALUE r_database, VALUE class_name,
 	} else {
 		method->oref = -1;
 	}
+
+	RUN(cbind_alloc_mtd_def(&method->def));
+    error = cbind_get_mtd_def(method->cl_def, method->in_name, method->def);
+	if(error) {
+		rb_raise(rb_eNoMethodError, "No such Cache method: %s%c%s", 
+			STR(rb_iv_get(self, "@class_name")), method->oref == -1 ? '.' : '#',
+			STR(FROMWCSTR(method->in_name)));
+	}
+    RUN(cbind_get_mtd_is_func(method->def, &method->is_func));
+    RUN(cbind_get_mtd_cpp_type(method->def, &method->cpp_type));
+    RUN(cbind_get_mtd_cache_type(method->def, &method->cache_type));
+    RUN(cbind_get_mtd_is_cls_mtd(method->def, &method->is_class_method));
+    RUN(cbind_get_mtd_num_args(method->def, &method->num_args));
+    RUN(cbind_get_mtd_args_info(method->def, &method->args_info));
+    RUN(cbind_get_mtd_name(method->def, &method->name));
 	return self;
 }
 

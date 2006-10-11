@@ -9,14 +9,14 @@ class QueryTest < Test::Unit::TestCase
   def test_open_and_save
     Person.database.start
     @name = "Anni Fyo"
-    @id = 31378
-    #assert Person.populate(1000)
+    @id = 9015
+    assert Person.populate(1000)
     assert @p = Person.open(@id)
     @p.name = @name
     assert @p.save
     assert @p = Person.open(@id)
     assert_equal @name, @p.name
-    #assert Person.delete_extent
+    assert Person.delete_extent
     Person.database.rollback
   end
   
@@ -25,7 +25,7 @@ class QueryTest < Test::Unit::TestCase
     assert @p = Person.intersys_call("%New")
     @p.name = "Test user"
     assert @p.save
-    #puts @p.id
+    puts @p.id
     assert @p.destroy
     Person.database.rollback
   end
