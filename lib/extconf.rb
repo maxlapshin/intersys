@@ -3,7 +3,6 @@
 require "mkmf"
 
 
-
 raise 'Use VS2005 solution from win32 directory to build this library' if RUBY_PLATFORM.match(/mswin/)
   
 
