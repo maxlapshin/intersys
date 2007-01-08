@@ -30,7 +30,7 @@ spec = Gem::Specification.new do |s|
   s.summary = PKG_SUMMARY
   s.require_path = "lib"
   s.rubyforge_project = PKG_NAME
-  s.files = FileList["{bin,test,lib}/**/*"].exclude("rdoc").exclude(".svn").exclude(".DS_Store").exclude("**/*.o").exclude("**/*.bundle").exclude("**/*.log").to_a
+  s.files = FileList["{bin,test,lib,ext}/**/*"].exclude("rdoc").exclude(".svn").exclude(".DS_Store").exclude("**/*.o").exclude("**/*.bundle").exclude("**/*.log").to_a
   s.files << ["Rakefile", "README", "init.rb"]
   s.test_files = FileList["{test}/**/*test.rb"].to_a
   s.autorequire = "intersys"
@@ -38,7 +38,7 @@ spec = Gem::Specification.new do |s|
   s.extra_rdoc_files = ["README"]
   s.rdoc_options = PKG_RDOC_OPTS
   s.add_dependency("activesupport", ">= 1.0")
-  s.extensions << 'lib/extconf.rb'
+  s.extensions << 'ext/extconf.rb'
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|
@@ -100,7 +100,6 @@ task :push_docs do
   local_dir = 'doc'
   [ 
     Rake::SshDirPublisher.new( user, project, local_dir),
-    #Rake::SshDirPublisher.new('julik', '~/www/code/rutils', local_dir),
   ].each { |p| p.upload }
 end
 

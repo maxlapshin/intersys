@@ -92,7 +92,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="move result dll to lib catalog"
-				CommandLine="copy /Y &quot;$(OutDir)\$(ProjectName).dll&quot; &quot;$(ProjectDir)\..\$(ProjectName).dll&quot;"
+				CommandLine="copy /Y &quot;$(OutDir)\$(ProjectName).dll&quot; &quot;$(ProjectDir)\..\..\lib\$(ProjectName).dll&quot;"
 			/>
 		</Configuration>
 		<Configuration
