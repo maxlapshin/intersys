@@ -17,14 +17,20 @@ CONFIG["CC"] = "gcc -g"
 #EOF
 #end
 
-@cache_placements = ["/home/max/cache", "/Applications/Cache"]
+unless cache_install_path = with_config('cache-install-path')
+  puts "Use --with-cache-install-path parameter to provide path to Intersystems Cache install directory"
+  exit 1
+end
+
+
+@cache_install_path = cache_install_path
 
 def locations(suffix)
-  @cache_placements.map {|place| place + suffix }
+  [@cache_install_path + suffix]
 end                                                                                             
 
 def include_locations
-  locations("/dev/cpp/include") + ["./sql_include"]
+  locations("/dev/cpp/include") + ["../ext/sql_include"]
 end
 
 def library_locations

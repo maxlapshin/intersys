@@ -104,13 +104,21 @@ task :push_docs do
 end
 
 desc "Build binary driver"
-task :build do
-  puts `cd lib; [ -e Makefile ] || ruby extconf.rb; make`
+task :build do |build|
+  unless ENV['cache_install_path']
+    puts "Use cache_install_path parameter to provide path to Intersystems Cache install directory"
+    exit 1
+  end
+  puts `cd lib; [ -e Makefile ] || ruby ../ext/extconf.rb --with-cache-install-path=#{ENV['cache_install_path']}; make`
 end
 
 desc "Rebuild binary driver"
 task :rebuild do
-  puts `cd lib; ruby extconf.rb; make clean all`
+  unless ENV['cache_install_path']
+    puts "Use cache_install_path parameter to provide path to Intersystems Cache install directory"
+    exit 1
+  end
+  puts `cd lib; ruby ../ext/extconf.rb --with-cache-install-path=#{ENV['cache_install_path']}; make clean all`
 end
 
 desc "Mark files in SVN"
