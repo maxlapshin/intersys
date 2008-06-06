@@ -9,11 +9,19 @@ require 'enumerator'
 # Module, keeping all classes, required to work with Cache via object and SQL interfaces
 module Intersys
   extend DL::Importable
-  begin
-    dlload("libcbind.dylib")
-  rescue StandardError => e
-    puts e
+  
+  load_error = nil
+  # try to load libraries for MacOSX and Linux
+  %w{ libcbind.dylib libcbind.so }.each do |lib|
+    begin
+      dlload(lib)
+      load_error = nil
+      break
+    rescue StandardError => load_error
+    end
   end
+
+  puts load_error if load_error
   
   require File.dirname(__FILE__) + '/intersys_cache'
   require File.dirname(__FILE__) + '/object'
