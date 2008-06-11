@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require 'dl/import'
 require 'rubygems'
-require_gem 'activesupport'
+gem 'activesupport'
 require 'active_support'
 require 'enumerator'
 
