@@ -9,16 +9,18 @@
 #include <sqlucode.h>
 
 static void query_close(struct rbQuery* query) {
-	if(!query->closed && query->executed) {
+  if(!query->closed && query->executed) {
 		RUN(cbind_query_close(query->query));
 		query->closed = 1;
 	}
 }
 
 void intersys_query_free(struct rbQuery* query) {
-	query_close(query);
-	RUN(cbind_free_query(query->query));
-	xfree(query);
+	if(!query->closed && query->executed) {
+		query_close(query);
+		RUN(cbind_free_query(query->query));
+		xfree(query);
+	}
 }
 
 VALUE intersys_query_s_allocate(VALUE klass) {
