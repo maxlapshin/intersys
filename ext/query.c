@@ -253,23 +253,32 @@ VALUE intersys_query_fetch(VALUE self) {
 
 VALUE intersys_query_each(VALUE self) {
 	struct rbQuery* query;
-	int i;
 	Data_Get_Struct(self, struct rbQuery, query);
+	
+	int i;
+	// skip offset records
 	if(query->offset > 0) {
-		RUN(cbind_query_skip(query->query, query->offset));
+		for(i = 0; i < query->offset; i++) {
+			if(intersys_query_fetch(self) == Qnil) {
+				break;
+			}
+		}
 	}
-	for(i = query->offset; i < query->offset + query->limit; i++) {
+
+	int row_count = 0;
+	int limit = query->limit > 0 ? query->limit : -1;
+	while(1) {
 		VALUE row = intersys_query_fetch(self);
-		if(row == Qnil || RARRAY(row)->len == 0) {
+		if(row == Qnil || RARRAY(row)->len == 0 || row_count == limit) {
 			break;
 		}
 		rb_yield(row);
+		row_count++;
 	}
+
 	query_close(query);
 	return self;
 }
-
-
 
 VALUE intersys_query_close(VALUE self) {
 	struct rbQuery* query;
