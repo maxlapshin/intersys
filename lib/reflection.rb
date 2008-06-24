@@ -63,7 +63,7 @@ module Reflection
     
     def [](index)
       return @list[index] if @loaded
-      intersys_call("GetAt", (index+1).to_s)
+      intersys_call("GetAt", index + 1)
     end
     
     def each
@@ -103,7 +103,7 @@ module Reflection
     def load_list
       @list ||= []
       self.each do |prop|
-        @list << prop.intersys_get("Name")
+        @list << ((prop.is_a?(PropertyDefinition) || prop.is_a?(MethodDefinition)) ? prop.intersys_get("Name") : prop)
       end unless @loaded
       @loaded = true
       @list
