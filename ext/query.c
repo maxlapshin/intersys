@@ -169,15 +169,15 @@ VALUE intersys_query_get_data(VALUE self, VALUE index) {
         case SQL_LONGVARBINARY:
         case SQL_VARBINARY:
         {
-            char buf[32767];
-            int size;
+					char buf[32767];
+					int size;
             
-            RUN(cbind_query_get_bin_data(query->query, buf, sizeof(buf), &size, &is_null));
-            if (is_null) {
-				return Qnil;
-            }
-			return rb_str_new(buf, size);
-		}
+					RUN(cbind_query_get_bin_data(query->query, buf, sizeof(buf), &size, &is_null));
+					if (is_null) {
+						return Qnil;
+					}
+					return rb_str_new2(buf);
+				}
         case SQL_TINYINT:
         case SQL_SMALLINT:
         case SQL_INTEGER:
@@ -254,7 +254,7 @@ VALUE intersys_query_fetch(VALUE self) {
 VALUE intersys_query_each(VALUE self) {
 	struct rbQuery* query;
 	Data_Get_Struct(self, struct rbQuery, query);
-	
+
 	int i;
 	// skip offset records
 	if(query->offset > 0) {
