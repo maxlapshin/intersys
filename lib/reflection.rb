@@ -103,7 +103,7 @@ module Reflection
     def load_list
       @list ||= []
       self.each do |prop|
-        @list << ((prop.is_a?(PropertyDefinition) || prop.is_a?(MethodDefinition)) ? prop.intersys_get("Name") : prop)
+        @list << prop
       end unless @loaded
       @loaded = true
       @list
