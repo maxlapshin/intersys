@@ -8,12 +8,42 @@ module Callable
   
   # returns list of methods for this class
   def intersys_methods
-    @methods ||= intersys_reflector._methods
+    @methods ||= intersys_reflector._methods.to_a
+  end
+  
+  def intersys_method_names
+    @method_names ||= intersys_methods.map { |method| method.intersys_get('Name') }
   end
 
   # returns list of properties for current class
   def intersys_properties
-    @properties ||= intersys_reflector.properties
+    properties = Intersys::Object.common_get_or_set('@properties', {})
+    properties[class_name] ||= intersys_reflector.properties.to_a
+  end
+  
+  def intersys_property_names
+    property_names = Intersys::Object.common_get_or_set('@property_names', {})
+    property_names[class_name] ||= intersys_properties.map { |prop| prop.intersys_get('Name') }
+  end
+  
+  def intersys_relations
+    relations = Intersys::Object.common_get_or_set('@relations', {})
+    relations[class_name] ||= intersys_properties.find_all { |prop| prop.relationship }
+  end
+  
+  def intersys_relation_names
+    relation_names = Intersys::Object.common_get_or_set('@relation_names', {})
+    relation_names[class_name] ||= intersys_relations.map { |prop| prop.intersys_get('Name') }
+  end
+  
+  def intersys_attributes
+    attributes = Intersys::Object.common_get_or_set('@attributes', {})
+    attributes[class_name] ||= intersys_properties.find_all { |prop| !prop.relationship }
+  end
+  
+  def intersys_attribute_names
+    attribute_names = Intersys::Object.common_get_or_set('@attribute_names', {})
+    attribute_names[class_name] ||= intersys_attributes.map { |prop| prop.intersys_get('Name') }
   end
   
 #protected
@@ -37,11 +67,11 @@ public
   alias :call :intersys_call
   
   def intersys_has_property?(property)
-    self.intersys_reflector.properties.to_a.include?(property)
+    intersys_property_names.include?(property)
   end
   
   def intersys_has_method?(method)
-    self.intersys_reflector._methods.to_a.include?(method)
+    intersys_method_names.include?(method)
   end
   
   # Get the specified property
@@ -56,10 +86,7 @@ public
 
   def method_missing(method, *args)
     method_name = method.to_s.camelize
-    if match_data = method_name.match(/intersys_(.*)/)
-      # Protection from errors in this method
-      return super(method, *args)
-    end
+    
     if match_data = method_name.match(/(\w+)=/)
       return intersys_set(match_data.captures.first, args.first)
     end
