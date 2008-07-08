@@ -232,13 +232,21 @@ VALUE intersys_query_get_data(VALUE self, VALUE index) {
 		}
 	  case SQL_TIME:
 		{
-			rb_warn("Converting to TIME obje not implemented for this moment.");
+			rb_warn("Converting to TIME object not implemented for this moment.");
 			return Qnil;
 		}
 	  case SQL_TIMESTAMP:
 		{
-			rb_warn("Converting to TIMESTAMP obje not implemented for this moment.");
-			return Qnil;
+			int year, month, day, hour, minute, second, fraction;
+
+			RUN(cbind_query_get_timestamp_data(query->query, &year, &month, &day, &hour, &minute, &second, &fraction, &is_null));
+			
+			if (is_null) {
+				return Qnil;
+			}
+
+			return rb_funcall(rb_cTime, rb_intern("local"), 7, 
+								 INT2FIX(year), INT2FIX(month), INT2FIX(day), INT2FIX(hour), INT2FIX(minute), INT2FIX(second), INT2FIX(fraction));;
 		}
 	  default:
 		{
