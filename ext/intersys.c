@@ -1,7 +1,7 @@
 #include "intersys.h"
 
 VALUE mIntersys, cDatabase, cObject, cDefinition, cProperty, cMethod, cArgument, cGlobal;
-VALUE cTime, cMarshallError, cUnMarshallError, cObjectNotFound, cIntersysException, cStatus;
+VALUE cTime, cDate, cMarshallError, cUnMarshallError, cObjectNotFound, cIntersysException, cStatus;
 
 #ifdef HAVE_SQL_H
 VALUE cQuery;
@@ -20,6 +20,7 @@ void Init_intersys_cache() {
 	rb_define_method(rb_cString, "from_wchar", string_from_wchar, 0);
 
 	cTime = rb_const_get(rb_cObject, rb_intern("Time"));
+	cDate = rb_const_get(rb_cObject, rb_intern("Date"));
 
 	mIntersys = rb_define_module("Intersys");
 	rb_define_singleton_method(mIntersys, "__wchar_t_size", wchar_t_size, 0);

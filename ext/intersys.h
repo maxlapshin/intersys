@@ -88,7 +88,7 @@ enum {
 
 extern VALUE mIntersys, cDatabase, cQuery, cObject, cDefinition, cProperty, 
 	cMethod, cArgument, cObjectNotFound, cStatus, cGlobal;
-extern VALUE cTime, cMarshallError, cUnMarshallError;
+extern VALUE cTime, cDate, cMarshallError, cUnMarshallError;
 
 
 /****** Common functions ******/

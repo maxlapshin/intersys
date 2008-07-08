@@ -144,71 +144,108 @@ VALUE intersys_query_execute(VALUE self) {
 VALUE intersys_query_get_data(VALUE self, VALUE index) {
 	struct rbQuery* query;
 	int type = 0;
-	VALUE ret = Qnil;
 	bool_t is_null;
 	Data_Get_Struct(self, struct rbQuery, query);
 
-    RUN(cbind_query_get_col_sql_type(query->query, FIX2INT(index), &type));
+	RUN(cbind_query_get_col_sql_type(query->query, FIX2INT(index), &type));
+
 	switch(type) {
-        case SQL_WCHAR:
-        case SQL_WVARCHAR:
-        case SQL_WLONGVARCHAR:
-        case SQL_CHAR:
-        case SQL_VARCHAR:
-        case SQL_LONGVARCHAR:
-        {
-            wchar_t buf[32767];
-            int size;
-            RUN(cbind_query_get_uni_str_data(query->query, buf, sizeof(buf), &size, &is_null));
-            if (is_null) {
+	  case SQL_CHAR:
+	  case SQL_VARCHAR:
+	  case SQL_LONGVARCHAR:
+		case SQL_WCHAR:
+	  case SQL_WVARCHAR:
+	  case SQL_WLONGVARCHAR:
+		{
+			wchar_t buf[32767];
+			int size;
+			
+			RUN(cbind_query_get_uni_str_data(query->query, buf, sizeof(buf), &size, &is_null));
+			
+			if (is_null || size < 0) {
 				return Qnil;
-            }
+			}
+
 			return FROMWCSTR(buf);
-        }
-        case SQL_BINARY:
-        case SQL_LONGVARBINARY:
-        case SQL_VARBINARY:
-        {
-					char buf[32767];
-					int size;
-            
-					RUN(cbind_query_get_bin_data(query->query, buf, sizeof(buf), &size, &is_null));
-					if (is_null) {
-						return Qnil;
-					}
-					return rb_str_new2(buf);
-				}
-        case SQL_TINYINT:
-        case SQL_SMALLINT:
-        case SQL_INTEGER:
-        case SQL_BIGINT:
-        case SQL_BIT:
-        {
-            int res;
-            RUN(cbind_query_get_int_data(query->query, &res, &is_null));
-            if (is_null) {
+		}
+	  case SQL_BINARY:
+	  case SQL_LONGVARBINARY:
+	  case SQL_VARBINARY:
+		{
+			char buf[32767];
+			int size;
+					  
+			RUN(cbind_query_get_bin_data(query->query, buf, sizeof(buf), &size, &is_null));
+
+			if (is_null || size < 0) {
 				return Qnil;
-            }
+			}
+
+			return rb_str_new(buf, size);
+		}
+	  case SQL_TINYINT:
+	  case SQL_SMALLINT:
+	  case SQL_INTEGER:
+	  case SQL_BIGINT:
+	  case SQL_BIT:
+		{
+			int res;
+
+			RUN(cbind_query_get_int_data(query->query, &res, &is_null));
+
+			if (is_null) {
+				return Qnil;
+			}
+
 			return INT2NUM(res);
-        }
-        case SQL_FLOAT:
-        case SQL_DOUBLE:
-        case SQL_REAL:
-        case SQL_NUMERIC:
-        case SQL_DECIMAL:
-        {
-            double res;
-            RUN(cbind_query_get_double_data(query->query, &res, &is_null));
-            if (is_null) {
+		}
+	  case SQL_FLOAT:
+	  case SQL_DOUBLE:
+	  case SQL_REAL:
+	  case SQL_NUMERIC:
+	  case SQL_DECIMAL:
+		{
+			double res;
+
+			RUN(cbind_query_get_double_data(query->query, &res, &is_null));
+
+			if (is_null) {
 				return Qnil;
-            }
+			}
+
 			return rb_float_new(res);
-        }
+		}
+	  case SQL_DATE:
+		{
+			int year, month, day;
 
+			RUN(cbind_query_get_date_data(query->query, &year, &month, &day, &is_null));
 
-		
+			if (is_null) {
+				return Qnil;
+			}
+
+			VALUE date;
+			date = rb_obj_alloc(cDate);
+			rb_funcall(date, rb_intern("initialize"), 3, INT2FIX(year), INT2FIX(month), INT2FIX(day));
+			return date;
+		}
+	  case SQL_TIME:
+		{
+			rb_warn("Converting to TIME obje not implemented for this moment.");
+			return Qnil;
+		}
+	  case SQL_TIMESTAMP:
+		{
+			rb_warn("Converting to TIMESTAMP obje not implemented for this moment.");
+			return Qnil;
+		}
+	  default:
+		{
+			rb_warn("UNKNOW SQL TYPE %d. Replaced with Nil", type);
+			return Qnil;
+		}
 	}
-	return ret;
 }
 
 VALUE intersys_query_column_name(VALUE self, VALUE i) {
