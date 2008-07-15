@@ -12,7 +12,7 @@ module Callable
   end
   
   def intersys_method_names
-    @method_names ||= intersys_methods.map { |method| method.intersys_get('Name') }
+    @method_names ||= intersys_methods.map { |method| method.intersys_get('Name').underscore }
   end
 
   # returns list of properties for current class
@@ -23,7 +23,7 @@ module Callable
   
   def intersys_property_names
     property_names = Intersys::Object.common_get_or_set('@property_names', {})
-    property_names[class_name] ||= intersys_properties.map { |prop| prop.intersys_get('Name') }
+    property_names[class_name] ||= intersys_properties.map { |prop| prop.intersys_get('Name').underscore }
   end
   
   def intersys_relations
@@ -33,7 +33,7 @@ module Callable
   
   def intersys_relation_names
     relation_names = Intersys::Object.common_get_or_set('@relation_names', {})
-    relation_names[class_name] ||= intersys_relations.map { |prop| prop.intersys_get('Name') }
+    relation_names[class_name] ||= intersys_relations.map { |prop| prop.intersys_get('Name').underscore }
   end
   
   def intersys_attributes
@@ -43,7 +43,7 @@ module Callable
   
   def intersys_attribute_names
     attribute_names = Intersys::Object.common_get_or_set('@attribute_names', {})
-    attribute_names[class_name] ||= intersys_attributes.map { |prop| prop.intersys_get('Name') }
+    attribute_names[class_name] ||= intersys_attributes.map { |prop| prop.intersys_get('Name').underscore }
   end
   
 #protected
@@ -67,11 +67,11 @@ public
   alias :call :intersys_call
   
   def intersys_has_property?(property)
-    intersys_property_names.include?(property)
+    intersys_property_names.include?(property.to_s)
   end
   
   def intersys_has_method?(method)
-    intersys_method_names.include?(method)
+    intersys_method_names.include?(method.to_s)
   end
   
   # Get the specified property
@@ -90,7 +90,7 @@ public
     if match_data = method_name.match(/(\w+)=/)
       return intersys_set(match_data.captures.first, args.first)
     end
-    return intersys_get(method_name) if intersys_has_property?(method_name) && args.empty?
+    return intersys_get(method_name) if intersys_has_property?(method) && args.empty?
     begin
       return intersys_call(method_name, *args)
     rescue NoMethodError => e
