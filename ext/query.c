@@ -174,7 +174,7 @@ VALUE intersys_query_get_data(VALUE self, VALUE index) {
 		{
 			char buf[32767];
 			int size;
-					  
+
 			RUN(cbind_query_get_bin_data(query->query, buf, sizeof(buf), &size, &is_null));
 
 			if (is_null || size < 0) {
@@ -225,10 +225,7 @@ VALUE intersys_query_get_data(VALUE self, VALUE index) {
 				return Qnil;
 			}
 
-			VALUE date;
-			date = rb_obj_alloc(cDate);
-			rb_funcall(date, rb_intern("initialize"), 3, INT2FIX(year), INT2FIX(month), INT2FIX(day));
-			return date;
+			return rb_funcall(cDate, rb_intern("civil"), 3, INT2FIX(year), INT2FIX(month), INT2FIX(day));
 		}
 	  case SQL_TIME:
 		{
