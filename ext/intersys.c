@@ -72,7 +72,7 @@ void Init_intersys_cache() {
 
 	cObject = rb_define_class_under(mIntersys, "Object", rb_cObject);
 	rb_define_alloc_func(cObject, intersys_object_s_allocate);
-	rb_define_method(cObject, "initialize", intersys_object_initialize, 0);
+	rb_define_method(cObject, "initialize", intersys_object_initialize, -2);
 	rb_define_singleton_method(cObject, "create", intersys_object_create, 0);
 	rb_define_singleton_method(cObject, "open", intersys_object_open_by_id, 1);
 

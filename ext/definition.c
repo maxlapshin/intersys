@@ -364,7 +364,7 @@ VALUE intersys_method_extract_retval(VALUE self) {
 			class_name_w = rb_wcstr_new(cl_name, len);
 			class_name = FROMWCHAR(class_name_w);
 			klass = rb_funcall(cObject, rb_intern("lookup"), 1, class_name);
-			result = rb_funcall(klass, rb_intern("new"), 0);
+			result = rb_funcall(klass, rb_intern("new"), 1, rb_ary_new3(1, Qtrue));
 			Data_Get_Struct(result, struct rbObject, object);
 			object->oref = oref;
 			return result;

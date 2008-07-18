@@ -139,7 +139,11 @@ VALUE intersys_query_get_offset(VALUE self);
 /******* Object functions *******/
 
 VALUE intersys_object_s_allocate(VALUE klass);
-VALUE intersys_object_initialize(VALUE self);
+/*
+ * Second parameter is an array that can contain additional parameter "do_no_call_intersys_new_method".
+ * When Qtrue - initializer will create empty object, otherwise - valid Cache new object.
+ */
+VALUE intersys_object_initialize(VALUE self, VALUE args);
 VALUE intersys_object_open_by_id(VALUE self, VALUE oid);
 VALUE intersys_object_create(VALUE self);
 
