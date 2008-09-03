@@ -229,8 +229,28 @@ VALUE intersys_query_get_data(VALUE self, VALUE index) {
 		}
 	  case SQL_TIME:
 		{
-			rb_warn("Converting to TIME object not implemented for this moment.");
-			return Qnil;
+			int hour, minute, second;
+			char buf[8];
+
+			RUN(cbind_query_get_time_data(query->query, &hour, &minute, &second, &is_null));
+			
+			if (is_null) {
+				return Qnil;
+			}
+
+			sprintf(buf, "%2d:%2d:%2d", hour, minute, second);
+
+			if (' ' == buf[0]) {
+				buf[0] = '0';
+			}
+			if (' ' == buf[3]) {
+				buf[3] = '0';
+			}
+			if (' ' == buf[6]) {
+				buf[6] = '0';
+			}
+
+			return rb_str_new2(buf);
 		}
 	  case SQL_TIMESTAMP:
 		{
@@ -243,7 +263,7 @@ VALUE intersys_query_get_data(VALUE self, VALUE index) {
 			}
 
 			return rb_funcall(rb_cTime, rb_intern("local"), 7, 
-								 INT2FIX(year), INT2FIX(month), INT2FIX(day), INT2FIX(hour), INT2FIX(minute), INT2FIX(second), INT2FIX(fraction));;
+								 INT2FIX(year), INT2FIX(month), INT2FIX(day), INT2FIX(hour), INT2FIX(minute), INT2FIX(second), INT2FIX(fraction));
 		}
 	  default:
 		{
