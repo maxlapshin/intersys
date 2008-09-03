@@ -36,6 +36,28 @@ module Callable
     relation_names[class_name] ||= intersys_relations.map { |prop| prop.intersys_get('Name').underscore }
   end
   
+  def intersys_belongs_to_relations
+    bt_cardinalities = %w{ one parent }
+    bt_relations = Intersys::Object.common_get_or_set('@bt_relations', {})
+    bt_relations[class_name] ||= intersys_relations.find_all { |prop| bt_cardinalities.include?(prop.cardinality) }
+  end
+  
+  def intersys_belongs_to_relation_names
+    bt_relation_names = Intersys::Object.common_get_or_set('@bt_relation_names', {})
+    bt_relation_names[class_name] ||= intersys_belongs_to_relations.map { |prop| prop.intersys_get('Name').underscore }
+  end
+  
+  def intersys_has_many_relations
+    hm_cardinalities = %w{ many children }
+    hm_relations = Intersys::Object.common_get_or_set('@hm_relations', {})
+    hm_relations[class_name] ||= intersys_relations.find_all { |prop| hm_cardinalities.include?(prop.cardinality) }
+  end
+  
+  def intersys_has_many_relation_names
+    hm_relation_names = Intersys::Object.common_get_or_set('@hm_relation_names', {})
+    hm_relation_names[class_name] ||= intersys_has_many_relations.map { |prop| prop.intersys_get('Name').underscore }
+  end
+  
   def intersys_attributes
     attributes = Intersys::Object.common_get_or_set('@attributes', {})
     attributes[class_name] ||= intersys_properties.find_all { |prop| !prop.relationship }
