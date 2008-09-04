@@ -151,7 +151,11 @@ class Object
   # However, if You ask reflector for id, it will give incorrect answer,
   # because Cache allows id to be string
   def id
-    intersys_call("%Id").to_i
+    unless @object_id
+      intersys_id = intersys_call("%Id")
+      @object_id = (intersys_id =~ /^\d+\|\|\d+$/) ? intersys_id : intersys_id.to_i
+    end
+    @object_id
   end
   
   # Destroys current object
