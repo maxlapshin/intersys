@@ -20,6 +20,11 @@ VALUE intersys_base_s_allocate(VALUE klass) {
 }
 
 VALUE intersys_base_initialize(VALUE self, VALUE options) {
+	rb_iv_set(self, "@options", options);
+	
+	VALUE initialize_time = rb_funcall(rb_cTime, rb_intern("now"), 0);
+	rb_cv_set(CLASS_OF(self), "@@last_query_at", rb_funcall(initialize_time, rb_intern("to_i"), 0));
+
 	return rb_funcall(self, rb_intern("connect"), 1, options);
 }
 

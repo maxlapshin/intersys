@@ -44,7 +44,13 @@ module Intersys
       #1.upto(data.first.size) do |i|
       #  puts q.column_name(i)
       #end
+      @@last_query_at = Time.now.to_i
       data
+    end
+    
+    def active?
+      now = Time.now.to_i
+      (now - @@last_query_at) < connection_timeout
     end
     
     def execute(query, params = [])
@@ -59,6 +65,12 @@ module Intersys
     
     def insert_id
       0
+    end
+    
+  private
+    # return connection timeout setting in seconds
+    def connection_timeout
+      @connection_timeout ||= (@options[:connection_timeout] || 60) * 60
     end
   end
 

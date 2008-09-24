@@ -92,9 +92,12 @@ class Object
     # Returns database, if called without parameters, or sets one, if passed
     # Once established, it is not possible now to connect to another database
     def database(db_options = {})
-      common_get_or_set("@database") do
-        Intersys::Database.new({:user => "_SYSTEM", :password => "SYS", :namespace => "User"}.merge(db_options))
+      database = Intersys::Object.instance_variable_get('@database')
+      if !database || !database.active?
+        database = Intersys::Database.new({:user => "_SYSTEM", :password => "SYS", :namespace => "User"}.merge(db_options))
+        Intersys::Object.instance_variable_set("@database", database)
       end
+      database
     end
     
     # This method takes block and executes it between
