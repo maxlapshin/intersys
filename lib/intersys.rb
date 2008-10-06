@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby
 require 'dl/import'
-require 'rubygems'
-gem 'activesupport'
 require 'active_support'
 require 'enumerator'
 
@@ -22,7 +20,8 @@ module Intersys
   end
 
   puts load_error if load_error
-  
+
+  require File.dirname(__FILE__) + '/string_extensions'
   require File.dirname(__FILE__) + '/intersys_cache'
   require File.dirname(__FILE__) + '/object'
   require File.dirname(__FILE__) + '/callable'

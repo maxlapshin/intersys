@@ -37,7 +37,6 @@ spec = Gem::Specification.new do |s|
   s.has_rdoc = true
   s.extra_rdoc_files = ["README"]
   s.rdoc_options = PKG_RDOC_OPTS
-  s.add_dependency("activesupport", ">= 1.0")
   s.extensions << 'ext/extconf.rb'
 end
 
