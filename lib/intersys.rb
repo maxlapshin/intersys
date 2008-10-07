@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 require 'dl/import'
-require 'active_support'
 require 'enumerator'
 
 #
@@ -21,7 +20,9 @@ module Intersys
 
   puts load_error if load_error
 
-  require File.dirname(__FILE__) + '/string_extensions'
+  if !String.method_defined?(:camelize) && !String.method_defined?(:underscore)
+    require File.dirname(__FILE__) + '/string_extensions'
+  end
   require File.dirname(__FILE__) + '/intersys_cache'
   require File.dirname(__FILE__) + '/object'
   require File.dirname(__FILE__) + '/callable'
