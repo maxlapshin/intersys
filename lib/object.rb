@@ -13,7 +13,18 @@ module Intersys
 # %Library.List
 #
 class Object
-
+  # Check Cache documentation to see description of this options.
+  # See GOBJ.pdf "Object Concurrency Options"
+  CONCURRENCIES = {
+    :no_locking => 0,
+    :atomic => 1,
+    :shared => 2,
+    :retained => 3,
+    :exclusive => 4
+  }.freeze
+  
+  DEFAULT_CONCURRENCY = :atomic
+  
   class << self
   protected      
     def class_names
@@ -121,9 +132,12 @@ class Object
       class_names[klass.class_name] = klass
     end
   
-    # Look into Cache documentation for what is concurrency. I don't know
     def concurrency
-      1
+      @concurrency ||= CONCURRENCIES[DEFAULT_CONCURRENCY]
+    end
+    
+    def concurrency=(concurrency)
+      @concurrency = CONCURRENCIES[concurrency] || CONCURRENCIES[DEFAULT_CONCURRENCY]
     end
   
     # timeout for connection
