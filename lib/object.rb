@@ -26,7 +26,16 @@ class Object
   DEFAULT_CONCURRENCY = :atomic
   
   class << self
-  protected      
+  protected
+    # Use this macros to set custom Intersys class name, e.g.
+    #
+    # class MyData
+    #   intersys_name 'MYData'
+    # end
+    def intersys_name(intersys_name)
+      self.class_name = intersys_name
+    end
+    
     def class_names
       common_get_or_set("@class_names", {})
     end
